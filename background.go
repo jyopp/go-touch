@@ -12,7 +12,7 @@ func NewBackground(frame Rect) *Background {
 	return background
 }
 
-func (background *Background) Draw(layer Layer, ctx LayerDrawing) {
+func (background *Background) Draw(layer Layer, ctx DrawingContext) {
 	bright := background.Brightness
 
 	var r, g, b byte

@@ -58,7 +58,7 @@ func (b *Button) SetHighlighted(highlighted bool) {
 	b.needsDisplay = true
 }
 
-func (b *Button) Draw(layer Layer, ctx LayerDrawing) {
+func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 	bounds := b.Rect.Bounds()
 
 	if b.Highlighted {

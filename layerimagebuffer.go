@@ -22,7 +22,7 @@ func NewLayerImageBuffer(w, h int) *LayerImageBuffer {
 	}
 }
 
-func (layer *LayerImageBuffer) Intersection(rect Rect) LayerDrawing {
+func (layer *LayerImageBuffer) Clip(rect Rect) DrawingContext {
 	clone := *layer
 	clone.rect = clone.rect.Intersection(rect)
 	return &clone
@@ -69,8 +69,6 @@ func (layer *LayerImageBuffer) GetRow(y int) []byte {
 
 func (layer *LayerImageBuffer) DrawRow(row []byte, x, y int) {
 	// Bounds-check before doing any real work
-	x += layer.rect.x
-	y += layer.rect.y
 	if y < 0 || y >= layer.rect.Bottom() {
 		return
 	}
@@ -78,6 +76,8 @@ func (layer *LayerImageBuffer) DrawRow(row []byte, x, y int) {
 		row = row[-x:]
 		x = -x
 	}
+	x += layer.rect.x
+	y += layer.rect.y
 
 	maxLen := 2 * layer.rect.w
 	byteX := 2 * x

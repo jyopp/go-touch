@@ -9,8 +9,8 @@ type Layer interface {
 
 	NeedsDisplay() bool
 	SetNeedsDisplay()
-	DisplayIfNeeded(ctx LayerDrawing)
-	Display(ctx LayerDrawing)
+	DisplayIfNeeded(ctx DrawingContext)
+	Display(ctx DrawingContext)
 
 	HitTest(TouchEvent) TouchTarget
 }
@@ -22,7 +22,7 @@ type TouchTarget interface {
 }
 
 type LayerDrawer interface {
-	Draw(layer Layer, ctx LayerDrawing)
+	Draw(layer Layer, ctx DrawingContext)
 }
 
 type BasicLayer struct {
@@ -78,19 +78,18 @@ func (layer *BasicLayer) SetNeedsDisplay() {
 	layer.needsDisplay = true
 }
 
-func (layer *BasicLayer) DisplayIfNeeded(ctx LayerDrawing) {
+func (layer *BasicLayer) DisplayIfNeeded(ctx DrawingContext) {
 	if layer.needsDisplay {
 		layer.Display(ctx)
 	} else {
 		for _, child := range layer.children {
-			child.DisplayIfNeeded(ctx)
+			child.DisplayIfNeeded(ctx.Clip(child.Frame()))
 		}
 	}
 }
 
 // Display naively splats all of the buffer's pixels into the parent's content
-func (layer *BasicLayer) Display(ctx LayerDrawing) {
-	ctx = ctx.Intersection(layer.Rect)
+func (layer *BasicLayer) Display(ctx DrawingContext) {
 	// Eventually we'll need to convert into the destination coordinate space
 	// fmt.Printf("Drawing %T %v into %T %v\n", layer, layer, ctx, ctx)
 	if drawer, ok := layer.identity.(LayerDrawer); ok {
@@ -103,7 +102,7 @@ func (layer *BasicLayer) Display(ctx LayerDrawing) {
 	}
 
 	for _, child := range layer.children {
-		child.Display(ctx)
+		child.Display(ctx.Clip(child.Frame()))
 	}
 	layer.needsDisplay = false
 }

@@ -40,7 +40,7 @@ func (model *ColorModel565) Convert(c color.Color) color.Color {
 	return converted
 }
 
-func (model *ColorModel565) FillRGB(ctx LayerDrawing, rect Rect, r, g, b byte) {
+func (model *ColorModel565) FillRGB(ctx DrawingContext, rect Rect, r, g, b byte) {
 	b1, b2 := pixel565(r, g, b)
 	w2 := rect.w * 2
 	row := make([]byte, w2)
