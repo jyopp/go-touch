@@ -28,8 +28,14 @@ func (model *ColorModel565) RGB(r, g, b byte) Color565 {
 }
 
 func (model *ColorModel565) Convert(c color.Color) color.Color {
-	r, g, b, _ := c.RGBA()
 	var converted Color565
+	r, g, b, a := c.RGBA()
+	if a > 0 {
+		// Unpremultiply alpha
+		r = 0xFFFF * r / a
+		g = 0xFFFF * g / a
+		b = 0xFFFF * b / a
+	}
 	converted.b1, converted.b2 = pixel565(byte(r), byte(g), byte(b))
 	return converted
 }
