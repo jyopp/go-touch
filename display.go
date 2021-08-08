@@ -45,6 +45,10 @@ func (d *Display) Redraw() {
 	d.Background.DrawIn(d)
 }
 
+func (d *Display) Draw() {
+	d.Background.DrawIfNeeded(d)
+}
+
 func (d *Display) DrawPixel(x, y int32, r, g, b byte) {
 	x = clamp(x, 0, d.Width-1)
 	y = clamp(y, 0, d.Height-1)
