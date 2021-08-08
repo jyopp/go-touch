@@ -15,9 +15,12 @@ func main() {
 			panic(err)
 		}
 
+		display.Clear()
+
+		// TODO: This needs to be an affine transform
 		calibration := TouchscreenCalibration{
-			Left: 235, Right: 3750,
-			Top: 3800, Bottom: 80,
+			Left: 3750, Right: 235,
+			Top: 80, Bottom: 3800,
 			Weak: 180, Strong: 80,
 		}
 		calibration.Prepare(display)
@@ -28,19 +31,25 @@ func main() {
 		// }
 		// fmt.Printf("Screen draw averaged %0.2dms over 32 passes\n", time.Since(start).Milliseconds()/32.0)
 
-		buttonArea := display.Background.Inset(10, 10)
-		for idx, rect := range buttonArea.GridVCount(6, 10) {
-			button := NewButton(rect)
-			button.Label = fmt.Sprintf("Button %d", idx)
-			button.DrawLayer()
-			button.OnTap = func() {
-				fmt.Printf("Tapped %s\n", button.Label)
+		background := NewBackground(display.Bounds())
+		background.radius = 8
+		background.Brightness = 0xE0
+
+		buttonArea := background.Inset(10, 10)
+		for idx, rect := range buttonArea.GridVCount(4, 10) {
+			for idx2, rect := range rect.GridHCount(2, 10) {
+				button := NewButton(rect)
+				button.Label = fmt.Sprintf("Button %d", 2*idx+idx2)
+				button.DrawLayer()
+				button.OnTap = func() {
+					fmt.Printf("Tapped %s\n", button.Label)
+				}
+				background.AddChild(button)
 			}
-			display.Background.AddChild(button.Layer)
 		}
 
-		display.Background.FillBackgroundGradient(0xE0)
-		display.Redraw()
+		display.AddLayer(background)
+		display.Update()
 
 		// Track inputs
 		inputFile, err := os.Open("/dev/input/event0")
@@ -52,7 +61,7 @@ func main() {
 		// events.dump = true
 		go events.EventLoop()
 
-		var eventTarget *Layer
+		var eventTarget TouchTarget
 
 		for event := range events.TouchEvents {
 			calibration.Adjust(&event)
@@ -60,8 +69,8 @@ func main() {
 				if eventTarget != nil {
 					eventTarget.UpdateTouch(event)
 				} else {
-					eventTarget = display.Background.HitTest(event)
-					if eventTarget != nil {
+					// Only when there is no current event target, hit test for one.
+					if eventTarget = display.HitTest(event); eventTarget != nil {
 						eventTarget.StartTouch(event)
 					}
 				}
@@ -71,7 +80,7 @@ func main() {
 					eventTarget = nil
 				}
 			}
-			display.Draw()
+			display.Update()
 		}
 	}
 }

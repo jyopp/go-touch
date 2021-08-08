@@ -1,24 +1,34 @@
 package main
 
+import "image"
+
 type Rect struct {
-	x, y    int32
-	w, h    int32
-	rounded bool
+	x, y int
+	w, h int
+	// Valid values are 0-7
+	radius int
 }
 
-func (r Rect) Bottom() int32 {
+func (r Rect) ContentBounds() image.Rectangle {
+	return image.Rectangle{
+		Min: image.Point{0, 0},
+		Max: image.Point{int(r.w), int(r.h)},
+	}
+}
+
+func (r Rect) Bottom() int {
 	return r.y + r.h
 }
 
-func (r Rect) Right() int32 {
+func (r Rect) Right() int {
 	return r.x + r.w
 }
 
-func (r Rect) Contains(x, y int32) bool {
+func (r Rect) Contains(x, y int) bool {
 	return x >= r.x && y >= r.y && x < r.x+r.w && y < r.y+r.h
 }
 
-func (r Rect) Inset(dx, dy int32) Rect {
+func (r Rect) Inset(dx, dy int) Rect {
 	return Rect{
 		x: r.x + dx,
 		y: r.y + dy,
@@ -27,7 +37,7 @@ func (r Rect) Inset(dx, dy int32) Rect {
 	}
 }
 
-func (r *Rect) SliceV(y, pad int32) Rect {
+func (r *Rect) SliceV(y, pad int) Rect {
 	sliced := *r
 	if y < 0 {
 		sliced.h = -y
@@ -42,7 +52,7 @@ func (r *Rect) SliceV(y, pad int32) Rect {
 	return sliced
 }
 
-func (r *Rect) GridVHeight(y, pad int32) []Rect {
+func (r *Rect) GridVHeight(y, pad int) []Rect {
 	remain := *r
 	rects := []Rect{}
 	for remain.h >= y {
@@ -51,20 +61,61 @@ func (r *Rect) GridVHeight(y, pad int32) []Rect {
 	return rects
 }
 
-func (r *Rect) GridVCount(count, pad int32) []Rect {
+func (r *Rect) GridVCount(count, pad int) []Rect {
 	itemH := (r.h + pad) / count
 	return r.GridVHeight(itemH-pad, pad)
 }
 
-var _roundInsets = [5]int32{5, 3, 2, 1, 1}
+func (r *Rect) SliceH(x, pad int) Rect {
+	sliced := *r
+	if x < 0 {
+		sliced.w = -x
+		sliced.x = r.Right() + x
+		r.w -= (pad - x)
+	} else {
+		sliced.w = x
+		dX := x + pad
+		r.x += dX
+		r.w -= dX
+	}
+	return sliced
+}
+
+func (r *Rect) GridHWidth(x, pad int) []Rect {
+	remain := *r
+	rects := []Rect{}
+	for remain.w >= x {
+		rects = append(rects, remain.SliceH(x, pad))
+	}
+	return rects
+}
+
+func (r *Rect) GridHCount(count, pad int) []Rect {
+	itemW := (r.w + pad) / count
+	return r.GridHWidth(itemW-pad, pad)
+}
+
+var _roundInsets = [9][]int{
+	{},
+	{1},
+	{2, 1},
+	{3, 2, 1},
+	{4, 2, 1, 1},
+	{5, 3, 2, 1, 1},
+	{6, 4, 3, 2, 1, 1},
+	{7, 5, 3, 2, 2, 1, 1},
+	{8, 6, 4, 3, 2, 2, 1, 1},
+}
 
 // private function; Returns the number of pixels that should be clipped from a given line
-func (r Rect) roundRectInset(line int32) int32 {
-	if line < 5 {
-		return _roundInsets[line]
-	}
-	if line > r.h-6 {
-		return _roundInsets[r.h-line-1]
+func (r Rect) roundRectInset(line int) int {
+	if r.radius < 9 {
+		if line < r.radius {
+			return _roundInsets[r.radius][line]
+		}
+		if line >= r.h-r.radius {
+			return _roundInsets[r.radius][r.h-line-1]
+		}
 	}
 	return 0
 }

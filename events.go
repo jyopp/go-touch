@@ -24,8 +24,8 @@ type EventStream struct {
 
 type TouchEvent struct {
 	Pressed  bool
-	X, Y     int32
-	Pressure int32
+	X, Y     int
+	Pressure int
 }
 
 func NewEventStream(deviceFile *os.File) *EventStream {
@@ -63,11 +63,11 @@ func (es *EventStream) EventLoop() {
 			// State event
 			switch e.Code {
 			case ABS_X:
-				currentEvent.X = e.Value
+				currentEvent.X = int(e.Value)
 			case ABS_Y:
-				currentEvent.Y = e.Value
+				currentEvent.Y = int(e.Value)
 			case ABS_PRESSURE:
-				currentEvent.Pressure = e.Value
+				currentEvent.Pressure = int(e.Value)
 			}
 		}
 	}

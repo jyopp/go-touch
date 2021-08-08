@@ -1,10 +1,10 @@
 package main
 
 type TouchscreenCalibration struct {
-	Left, Top, Right, Bottom int32
-	Weak, Strong             int32
+	Left, Top, Right, Bottom int
+	Weak, Strong             int
 	// Cached Values for faster conversions
-	convW, convH, convZ int32
+	convW, convH, convZ int
 }
 
 func (c *TouchscreenCalibration) Prepare(display *Display) {

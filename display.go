@@ -5,14 +5,16 @@ import (
 	"syscall"
 )
 
+// Eventually, perhaps Display should fully conform to LayerDrawing...
+
 type Display struct {
-	Width, Height int32
-	Background    *Layer
+	Width, Height int
 	FrameBuffer   []byte
 	DeviceFile    *os.File
+	Layers        []Layer
 }
 
-func NewDisplay(w, h int32, framebuffer *os.File) *Display {
+func NewDisplay(w, h int, framebuffer *os.File) *Display {
 	// Experimental MMAP, probably not robust.
 	data, err := syscall.Mmap(int(framebuffer.Fd()), 0, int(2*w*h), syscall.PROT_WRITE, syscall.MAP_SHARED)
 	if err != nil {
@@ -21,38 +23,53 @@ func NewDisplay(w, h int32, framebuffer *os.File) *Display {
 	return &Display{
 		Width:       w,
 		Height:      h,
-		Background:  NewLayer(Rect{x: 0, y: 0, w: w, h: h}),
 		FrameBuffer: data,
 		DeviceFile:  framebuffer,
+		Layers:      []Layer{},
 	}
 }
 
-func pixel565(r, g, b byte) (byte, byte) {
-	return ((g << 3) & 0b11100000) | b>>3, (r & 0b11111000) | (g >> 5)
+func (d *Display) Bounds() Rect {
+	return Rect{x: 0, y: 0, w: d.Width, h: d.Height}
 }
 
-func clamp(num, min, max int32) int32 {
-	if num < min {
-		return min
+func (d *Display) DrawPixel(x, y int, r, g, b byte) {
+	if x < 0 || y < 0 || x >= d.Width || y >= d.Height {
+		return
 	}
-	if num > max {
-		return max
-	}
-	return num
-}
-
-func (d *Display) Redraw() {
-	d.Background.DrawIn(d)
-}
-
-func (d *Display) Draw() {
-	d.Background.DrawIfNeeded(d)
-}
-
-func (d *Display) DrawPixel(x, y int32, r, g, b byte) {
-	x = clamp(x, 0, d.Width-1)
-	y = clamp(y, 0, d.Height-1)
 	var pixel [2]byte
 	pixel[0], pixel[1] = pixel565(r, g, b)
 	copy(d.FrameBuffer[2*(d.Width*y+x):], pixel[:])
+}
+
+func (d *Display) AddLayer(layer Layer) {
+	d.Layers = append(d.Layers, layer)
+}
+
+func (d *Display) HitTest(event TouchEvent) TouchTarget {
+	for _, layer := range d.Layers {
+		if target := layer.HitTest(event); target != nil {
+			return target
+		}
+	}
+	return nil
+}
+
+func (d *Display) Clear() {
+	for idx := range d.FrameBuffer {
+		d.FrameBuffer[idx] = 0x00
+	}
+}
+
+func (d *Display) Update() {
+	for _, layer := range d.Layers {
+		layer.DisplayIfNeeded(d.Subrect(layer.Frame()))
+	}
+}
+
+func (d *Display) Subrect(r Rect) *DisplayRect {
+	return &DisplayRect{
+		Rect:    r,
+		display: d,
+	}
 }

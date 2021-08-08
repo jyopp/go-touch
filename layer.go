@@ -1,148 +1,142 @@
 package main
 
-type LayerEvents interface {
+import "fmt"
+
+type Layer interface {
+	Content() LayerDrawing
+
+	// Parent() Layer
+	// SetParent(parent Layer)
+
+	Children() []Layer
+	AddChild(Layer)
+
+	Frame() Rect
+	SetFrame(frame Rect)
+
+	NeedsDisplay() bool
+	SetNeedsDisplay()
+	DisplayIfNeeded(ctx LayerDrawing)
+	Display(ctx LayerDrawing)
+
+	HitTest(TouchEvent) TouchTarget
+}
+
+type TouchTarget interface {
 	StartTouch(TouchEvent)
 	UpdateTouch(TouchEvent)
 	EndTouch(TouchEvent)
 }
 
-type Layer struct {
+type BasicLayer struct {
 	Rect
-	Contents     []byte
-	Children     []*Layer
-	Owner        interface{}
-	NeedsDisplay bool
+	buffer *LayerImageBuffer
+	// parent       Layer
+	children     []Layer
+	needsDisplay bool
+	needsRedraw  bool
+	identity     interface{}
 }
 
-func NewLayer(r Rect) *Layer {
-	return &Layer{
-		Rect:     r,
-		Contents: make([]byte, 2*r.w*r.h),
+func NewLayer(frame Rect, identity interface{}) *BasicLayer {
+	return &BasicLayer{
+		Rect:         frame,
+		buffer:       NewLayerImageBuffer(frame.w, frame.h),
+		needsDisplay: true,
+		needsRedraw:  true,
+		identity:     identity,
 	}
 }
 
-func (layer *Layer) AddChild(child *Layer) {
-	layer.Children = append(layer.Children, child)
+func (layer *BasicLayer) Frame() Rect {
+	return layer.Rect
 }
 
-func (layer *Layer) HitTest(event TouchEvent) *Layer {
-	for _, child := range layer.Children {
-		if hit := child.HitTest(event); hit != nil {
-			return hit
+func (layer *BasicLayer) SetFrame(frame Rect) {
+	if frame.w != layer.buffer.Width || frame.h != layer.buffer.Height {
+		layer.buffer = NewLayerImageBuffer(frame.w, frame.h)
+		layer.needsDisplay = true
+		layer.needsRedraw = true
+	}
+	layer.Rect = frame
+}
+
+func (layer *BasicLayer) AddChild(child Layer) {
+	layer.children = append(layer.children, child)
+	// child.SetParent(layer)
+	layer.needsDisplay = true
+}
+
+func (layer *BasicLayer) HitTest(event TouchEvent) TouchTarget {
+	for _, child := range layer.children {
+		if target := child.HitTest(event); target != nil {
+			return target
 		}
 	}
 	if event.Pressed && layer.Contains(event.X, event.Y) {
-		return layer
+		if interactor, ok := layer.identity.(TouchTarget); ok {
+			return interactor
+		}
 	}
 	return nil
 }
 
-func (layer *Layer) StartTouch(event TouchEvent) {
-	if e, ok := layer.Owner.(LayerEvents); ok {
-		e.StartTouch(event)
-	}
+// func (layer *BasicLayer) Parent() Layer {
+// 	return layer.parent
+// }
+
+// func (layer *BasicLayer) SetParent(parent Layer) {
+// 	layer.parent = parent
+// 	layer.needsDisplay = true
+// }
+
+func (layer *BasicLayer) Children() []Layer {
+	return layer.children
 }
 
-func (layer *Layer) UpdateTouch(event TouchEvent) {
-	if e, ok := layer.Owner.(LayerEvents); ok {
-		e.UpdateTouch(event)
-	}
+func (layer *BasicLayer) Content() LayerDrawing {
+	return layer.buffer
 }
 
-func (layer *Layer) EndTouch(event TouchEvent) {
-	if e, ok := layer.Owner.(LayerEvents); ok {
-		e.EndTouch(event)
-	}
+func (layer *BasicLayer) NeedsDisplay() bool {
+	return layer.needsDisplay
 }
 
-func (layer *Layer) FillRGB(r, g, b byte) {
-	b1, b2 := pixel565(r, g, b)
-	w2 := layer.w * 2
-	for i := int32(0); i < w2; {
-		layer.Contents[i] = b1
-		i++
-		layer.Contents[i] = b2
-		i++
-	}
-	for i := int32(1); i < layer.h; i++ {
-		copy(layer.Contents[i*w2:], layer.Contents[:w2])
-	}
-	layer.NeedsDisplay = true
+func (layer *BasicLayer) SetNeedsDisplay() {
+	layer.needsDisplay = true
 }
 
-func (layer *Layer) FillBackgroundGradient(bright int32) {
-	var r, g, b byte
-	//	g = byte((bright * 3) / 4)
-	w, h := layer.w, layer.h
-	for y := int32(0); y < h; y++ {
-		b = byte(bright * y / h)
-		row := layer.Contents[2*w*y:]
-		for x := int32(0); x < w; x++ {
-			r = byte(bright * x / w)
-			g = byte(bright) - r/4 - b/2
-			row[x<<1], row[(x<<1)+1] = pixel565(r, g, b)
-		}
-	}
-	layer.NeedsDisplay = true
-}
-
-func (layer *Layer) DrawIfNeeded(display *Display) {
-	if layer.NeedsDisplay {
-		layer.DrawIn(display)
+func (layer *BasicLayer) DisplayIfNeeded(ctx LayerDrawing) {
+	if layer.needsDisplay {
+		layer.Display(ctx)
 	} else {
-		for _, child := range layer.Children {
-			child.DrawIfNeeded(display)
+		for _, child := range layer.children {
+			child.DisplayIfNeeded(ctx)
 		}
 	}
 }
 
-// DrawIn Naively draws all of the buffer's pixels to the display
-func (layer *Layer) DrawIn(disp *Display) {
-	if layer.x > disp.Width || layer.y > disp.Height {
-		return
-	}
+// Display naively splats all of the buffer's pixels into the parent's content
+func (layer *BasicLayer) Display(ctx LayerDrawing) {
+	// Eventually we'll need to convert into the destination coordinate space
+	fmt.Printf("Drawing %T %v into %T %v\n", layer, layer, ctx, ctx)
 
-	// Determine the range endpoints for each line in the buffer, to avoid wrapping onscreen.
-	// We'll copy slices from the receiver into the display's framebuffer
-	var l, t, r, b int32 = 0, 0, layer.w, layer.h
-	dstL := layer.x
-	dstT := layer.y
-	if layer.x < 0 {
-		l = -layer.x
-		dstL = 0
-	}
-	if layer.Right() > disp.Width {
-		r = disp.Width - layer.x
-	}
-	if layer.y < 0 {
-		t = -layer.y
-		dstT = 0
-	}
-	if layer.Bottom() > disp.Height {
-		b = disp.Height - layer.y
-	}
-
-	dstOffset := 2 * (dstT*disp.Width + dstL)
-	srcOffsetL := 2 * (layer.w*t + l)
-	srcOffsetR := 2 * (layer.w*t + r)
-	srcLine := 2 * layer.w
-	dstLine := 2 * disp.Width
-	// Inset value used for rounded corners
-	var i int32 = 0
-	for srcY := t; srcY < b; srcY++ {
-		// Support rounded corners via clipping
-		if layer.rounded {
-			i = 2 * layer.roundRectInset(srcY)
+	var x, y = layer.x, layer.y
+	content := layer.buffer
+	for contentY := 0; contentY < content.Height; contentY++ {
+		row := content.GetRow(contentY)
+		// Clip rounded corners in a very simple way
+		if layer.radius > 0 {
+			i := layer.roundRectInset(contentY)
+			ctx.DrawRow(row[2*i:len(row)-2*i], x+i, y)
+		} else {
+			ctx.DrawRow(content.GetRow(contentY), x, y)
 		}
-		copy(disp.FrameBuffer[dstOffset+i:], layer.Contents[srcOffsetL+i:srcOffsetR-i])
-		dstOffset += dstLine
-		srcOffsetL += srcLine
-		srcOffsetR += srcLine
-	}
 
-	// Recurse. No fancy data structures (yet)
-	for _, child := range layer.Children {
-		child.DrawIn(disp)
+		y++
 	}
-	layer.NeedsDisplay = false
+	for _, child := range layer.children {
+		child.Display(ctx)
+	}
+	layer.needsDisplay = false
 }

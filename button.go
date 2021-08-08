@@ -21,31 +21,25 @@ func init() {
 }
 
 type Button struct {
-	*Layer
+	BasicLayer
 	Highlighted bool
 	OnTap       func()
 	Label       string
 	context     *freetype.Context
-	// textImage   *image.Gray16
 }
 
 func NewButton(r Rect) *Button {
-	button := &Button{
-		Layer: NewLayer(r),
-	}
-	button.Layer.Owner = button
-	button.rounded = true
-	button.NeedsDisplay = true
-
-	// button.textImage = image.NewGray16(button.Layer.Bounds())
+	button := &Button{}
+	button.BasicLayer = *NewLayer(r, button)
+	button.radius = 5
 
 	button.Label = "Button"
 	button.context = freetype.NewContext()
 	button.context.SetDPI(72.0)
 	button.context.SetFont(boldFont)
 	button.context.SetFontSize(26.0)
-	button.context.SetDst(button.Layer)
-	button.context.SetClip(button.Layer.Bounds())
+	button.context.SetDst(button.buffer)
+	button.context.SetClip(button.buffer.Bounds())
 	button.context.SetSrc(image.NewUniform(color.Black))
 
 	return button
@@ -57,13 +51,16 @@ func (b *Button) SetHighlighted(highlighted bool) {
 	}
 	b.Highlighted = highlighted
 	b.DrawLayer()
+	b.needsDisplay = true
 }
 
 func (b *Button) DrawLayer() {
 	if b.Highlighted {
-		b.FillRGB(0x55, 0xAA, 0xCC)
+		b.buffer.FillRGB(0x33, 0x77, 0xCC)
+		b.context.SetSrc(image.NewUniform(color.White))
 	} else {
-		b.FillRGB(0xFF, 0xFE, 0xFC)
+		b.buffer.FillRGB(0xFF, 0xFE, 0xFC)
+		b.context.SetSrc(image.NewUniform(color.Black))
 	}
 
 	if _, err := b.context.DrawString(b.Label, fixed.P(60, int(b.h/2)+10)); err != nil {
