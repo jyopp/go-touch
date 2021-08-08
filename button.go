@@ -37,7 +37,7 @@ type Button struct {
 
 func NewButton(r Rect) *Button {
 	button := &Button{}
-	button.BasicLayer = *NewLayer(r, button)
+	button.Init(r, button)
 	button.radius = 5
 
 	button.Label = "Button"
@@ -59,27 +59,28 @@ func (b *Button) SetHighlighted(highlighted bool) {
 }
 
 func (b *Button) Draw(layer Layer, ctx LayerDrawing) {
+	bounds := b.Rect.Bounds()
 
 	if b.Highlighted {
-		model565.FillRGB(ctx, b.Rect, 0x66, 0x99, 0xCC)
+		model565.FillRGB(ctx, bounds, 0x66, 0x99, 0xCC)
 		b.context.SetSrc(image.NewUniform(color.White))
 	} else {
-		model565.FillRGB(ctx, b.Rect, 0xFF, 0xFE, 0xFC)
+		model565.FillRGB(ctx, bounds, 0xFF, 0xFE, 0xFC)
 		b.context.SetSrc(image.NewUniform(color.Black))
 	}
 
 	if b.Icon != nil {
-		iconX := (b.w - b.Icon.Bounds().Dx()) / 2
-		draw.Draw(ctx, layer.Frame().Rectangle(), b.Icon, image.Pt(-iconX, -3), draw.Src)
+		iconX := (bounds.w - b.Icon.Bounds().Dx()) / 2
+		draw.Draw(ctx, bounds.Rectangle(), b.Icon, image.Pt(-iconX, -3), draw.Src)
 	}
 
 	textContext := b.context
 	textContext.SetDst(ctx)
-	textContext.SetClip(layer.Frame().Rectangle())
+	textContext.SetClip(bounds.Rectangle())
 
 	textWidth := font.MeasureString(buttonFace, b.Label).Round()
-	textX := b.x + (b.w-textWidth)/2
-	if _, err := textContext.DrawString(b.Label, fixed.P(textX, b.Bottom()-10)); err != nil {
+	textX := (bounds.w - textWidth) / 2
+	if _, err := textContext.DrawString(b.Label, fixed.P(textX, bounds.Bottom()-10)); err != nil {
 		fmt.Printf("%v drawing string: %s\n", err, b.Label)
 	}
 }

@@ -15,4 +15,7 @@ type LayerDrawing interface {
 	// The receiver is responsible for bounds checking:
 	// x and y may be negative, and x, y, and y + len(row) may exceed receiver's dimensions
 	DrawRow(row []byte, x, y int)
+
+	// Returns a new Drawable masked to the intersection with rect.
+	Intersection(rect Rect) LayerDrawing
 }

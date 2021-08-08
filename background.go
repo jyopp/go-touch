@@ -7,10 +7,8 @@ type Background struct {
 }
 
 func NewBackground(frame Rect) *Background {
-	background := &Background{
-		BasicLayer: *NewLayer(frame, nil),
-	}
-	background.identity = background
+	background := &Background{}
+	background.Init(frame, background)
 	return background
 }
 
@@ -31,6 +29,4 @@ func (background *Background) Draw(layer Layer, ctx LayerDrawing) {
 		}
 		ctx.DrawRow(row, background.x, background.y+y)
 	}
-	background.needsRedraw = false
-	background.needsDisplay = true
 }

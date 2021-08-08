@@ -9,11 +9,8 @@ type Rect struct {
 	radius int
 }
 
-func (r Rect) ContentBounds() image.Rectangle {
-	return image.Rectangle{
-		Min: image.Point{0, 0},
-		Max: image.Point{r.w, r.h},
-	}
+func (r Rect) Bounds() Rect {
+	return Rect{0, 0, r.w, r.h, r.radius}
 }
 
 func (r Rect) Rectangle() image.Rectangle {
@@ -33,6 +30,36 @@ func (r Rect) Right() int {
 
 func (r Rect) Contains(x, y int) bool {
 	return x >= r.x && y >= r.y && x < r.x+r.w && y < r.y+r.h
+}
+
+func (r Rect) Intersection(r2 Rect) (rect Rect) {
+	if r.x > r2.x {
+		rect.x = r.x
+	} else {
+		rect.x = r2.x
+	}
+	r1r, r2r := r.x+r.w, r2.x+r2.w
+	if r1r < r2r {
+		rect.w = r1r - rect.x
+	} else {
+		rect.w = r2r - rect.x
+	}
+
+	if r.y > r2.y {
+		rect.y = r.y
+	} else {
+		rect.y = r2.y
+	}
+	r1b, r2b := r.y+r.h, r2.y+r2.h
+	if r1b < r2b {
+		rect.h = r1b - rect.y
+	} else {
+		rect.h = r2b - rect.y
+	}
+
+	rect.radius = r2.radius
+
+	return
 }
 
 func (r Rect) Inset(dx, dy int) Rect {

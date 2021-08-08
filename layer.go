@@ -1,11 +1,6 @@
 package main
 
 type Layer interface {
-	// Content() LayerDrawing
-
-	// Parent() Layer
-	// SetParent(parent Layer)
-
 	Children() []Layer
 	AddChild(Layer)
 
@@ -32,22 +27,15 @@ type LayerDrawer interface {
 
 type BasicLayer struct {
 	Rect
-	buffer *LayerImageBuffer
-	// parent       Layer
 	children     []Layer
 	needsDisplay bool
-	needsRedraw  bool
 	identity     interface{}
 }
 
-func NewLayer(frame Rect, identity interface{}) *BasicLayer {
-	return &BasicLayer{
-		Rect: frame,
-		// buffer:       NewLayerImageBuffer(frame.w, frame.h),
-		needsDisplay: true,
-		needsRedraw:  true,
-		identity:     identity,
-	}
+func (layer *BasicLayer) Init(frame Rect, identity interface{}) {
+	layer.Rect = frame
+	layer.identity = identity
+	layer.needsDisplay = true
 }
 
 func (layer *BasicLayer) Frame() Rect {
@@ -55,11 +43,6 @@ func (layer *BasicLayer) Frame() Rect {
 }
 
 func (layer *BasicLayer) SetFrame(frame Rect) {
-	// if layer.buffer != nil && (frame.w != layer.buffer.Width || frame.h != layer.buffer.Height) {
-	// 	layer.buffer = NewLayerImageBuffer(frame.w, frame.h)
-	// 	layer.needsDisplay = true
-	// 	layer.needsRedraw = true
-	// }
 	layer.Rect = frame
 }
 
@@ -83,22 +66,9 @@ func (layer *BasicLayer) HitTest(event TouchEvent) TouchTarget {
 	return nil
 }
 
-// func (layer *BasicLayer) Parent() Layer {
-// 	return layer.parent
-// }
-
-// func (layer *BasicLayer) SetParent(parent Layer) {
-// 	layer.parent = parent
-// 	layer.needsDisplay = true
-// }
-
 func (layer *BasicLayer) Children() []Layer {
 	return layer.children
 }
-
-// func (layer *BasicLayer) Content() LayerDrawing {
-// 	return layer.buffer
-// }
 
 func (layer *BasicLayer) NeedsDisplay() bool {
 	return layer.needsDisplay
@@ -120,34 +90,18 @@ func (layer *BasicLayer) DisplayIfNeeded(ctx LayerDrawing) {
 
 // Display naively splats all of the buffer's pixels into the parent's content
 func (layer *BasicLayer) Display(ctx LayerDrawing) {
+	ctx = ctx.Intersection(layer.Rect)
 	// Eventually we'll need to convert into the destination coordinate space
 	// fmt.Printf("Drawing %T %v into %T %v\n", layer, layer, ctx, ctx)
-
-	var x, y = layer.x, layer.y
 	if drawer, ok := layer.identity.(LayerDrawer); ok {
-		var into LayerDrawing
-		if layer.buffer != nil {
-			into = layer.buffer
-		} else {
-			into = ctx
-		}
-		drawer.Draw(layer, into)
+		drawer.Draw(layer, ctx)
+	} else {
+		// TODO: Throw an error? Refuse to draw?
+		// Draw lime green for debugging
+		rect := Rect{x: 0, y: 0, w: layer.w, h: layer.h}
+		model565.FillRGB(ctx, rect, 0x00, 0xFF, 0x00)
 	}
 
-	if buffer := layer.buffer; buffer != nil {
-		for contentY := 0; contentY < buffer.Height; contentY++ {
-			row := buffer.GetRow(contentY)
-			// Clip rounded corners in a very simple way
-			if layer.radius > 0 {
-				i := layer.roundRectInset(contentY)
-				ctx.DrawRow(row[2*i:len(row)-2*i], x+i, y)
-			} else {
-				ctx.DrawRow(buffer.GetRow(contentY), x, y)
-			}
-
-			y++
-		}
-	}
 	for _, child := range layer.children {
 		child.Display(ctx)
 	}

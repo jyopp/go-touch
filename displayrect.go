@@ -65,3 +65,10 @@ func (dr *DisplayRect) DrawRow(row []byte, x, y int) {
 	}
 	copy(bufRow, row)
 }
+
+func (dr *DisplayRect) Intersection(rect Rect) LayerDrawing {
+	return &DisplayRect{
+		Rect:    dr.Rect.Intersection(rect),
+		display: dr.display,
+	}
+}
