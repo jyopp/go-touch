@@ -72,19 +72,3 @@ func (layer *LayerImageBuffer) DrawRow(row []byte, x, y int) {
 	}
 	copy(layer.pixels[y*lineLen+byteX:], row)
 }
-
-func (layer *LayerImageBuffer) FillRGB(r, g, b byte) {
-	b1, b2 := pixel565(r, g, b)
-	w2 := layer.Width * 2
-	for i := 0; i < w2; {
-		layer.pixels[i] = b1
-		i++
-		layer.pixels[i] = b2
-		i++
-	}
-	// Copy the first line into all subsequent lines
-	firstLine := layer.pixels[:w2]
-	for i := 1; i < layer.Height; i++ {
-		copy(layer.pixels[i*w2:], firstLine)
-	}
-}

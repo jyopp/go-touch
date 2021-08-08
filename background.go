@@ -7,34 +7,29 @@ type Background struct {
 }
 
 func NewBackground(frame Rect) *Background {
-	return &Background{
+	background := &Background{
 		BasicLayer: *NewLayer(frame, nil),
 	}
+	background.identity = background
+	return background
 }
 
-func (background *Background) DisplayIfNeeded(ctx LayerDrawing) {
-	if background.needsRedraw {
-		background.DrawLayer()
-	}
-	background.BasicLayer.DisplayIfNeeded(ctx)
-}
-
-func (background *Background) DrawLayer() {
-	buffer := background.buffer
+func (background *Background) Draw(layer Layer, ctx LayerDrawing) {
 	bright := background.Brightness
-	println("Drawing Background", buffer, bright)
 
 	var r, g, b byte
 	//	g = byte((bright * 3) / 4)
-	w, h := buffer.Width, buffer.Height
+	w, h := background.w, background.h
+	row := make([]byte, 2*w)
+
 	for y := 0; y < h; y++ {
 		b = byte(bright * y / h)
-		row := buffer.pixels[2*w*y:]
 		for x := 0; x < w; x++ {
 			r = byte(bright * x / w)
 			g = byte(bright) - r/4 - b/2
-			row[x<<1], row[(x<<1)+1] = pixel565(r, g, b)
+			row[2*x], row[2*x+1] = pixel565(r, g, b)
 		}
+		ctx.DrawRow(row, background.x, background.y+y)
 	}
 	background.needsRedraw = false
 	background.needsDisplay = true

@@ -36,11 +36,12 @@ func main() {
 		background.Brightness = 0xE0
 
 		buttonArea := background.Inset(10, 10)
+		icon, _ := ReadImage("note.png")
 		for idx, rect := range buttonArea.GridVCount(4, 10) {
 			for idx2, rect := range rect.GridHCount(2, 10) {
 				button := NewButton(rect)
 				button.Label = fmt.Sprintf("Button %d", 2*idx+idx2)
-				button.DrawLayer()
+				button.Icon = icon
 				button.OnTap = func() {
 					fmt.Printf("Tapped %s\n", button.Label)
 				}

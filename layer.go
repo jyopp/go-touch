@@ -1,9 +1,7 @@
 package main
 
-import "fmt"
-
 type Layer interface {
-	Content() LayerDrawing
+	// Content() LayerDrawing
 
 	// Parent() Layer
 	// SetParent(parent Layer)
@@ -28,6 +26,10 @@ type TouchTarget interface {
 	EndTouch(TouchEvent)
 }
 
+type LayerDrawer interface {
+	Draw(layer Layer, ctx LayerDrawing)
+}
+
 type BasicLayer struct {
 	Rect
 	buffer *LayerImageBuffer
@@ -40,8 +42,8 @@ type BasicLayer struct {
 
 func NewLayer(frame Rect, identity interface{}) *BasicLayer {
 	return &BasicLayer{
-		Rect:         frame,
-		buffer:       NewLayerImageBuffer(frame.w, frame.h),
+		Rect: frame,
+		// buffer:       NewLayerImageBuffer(frame.w, frame.h),
 		needsDisplay: true,
 		needsRedraw:  true,
 		identity:     identity,
@@ -53,11 +55,11 @@ func (layer *BasicLayer) Frame() Rect {
 }
 
 func (layer *BasicLayer) SetFrame(frame Rect) {
-	if frame.w != layer.buffer.Width || frame.h != layer.buffer.Height {
-		layer.buffer = NewLayerImageBuffer(frame.w, frame.h)
-		layer.needsDisplay = true
-		layer.needsRedraw = true
-	}
+	// if layer.buffer != nil && (frame.w != layer.buffer.Width || frame.h != layer.buffer.Height) {
+	// 	layer.buffer = NewLayerImageBuffer(frame.w, frame.h)
+	// 	layer.needsDisplay = true
+	// 	layer.needsRedraw = true
+	// }
 	layer.Rect = frame
 }
 
@@ -94,9 +96,9 @@ func (layer *BasicLayer) Children() []Layer {
 	return layer.children
 }
 
-func (layer *BasicLayer) Content() LayerDrawing {
-	return layer.buffer
-}
+// func (layer *BasicLayer) Content() LayerDrawing {
+// 	return layer.buffer
+// }
 
 func (layer *BasicLayer) NeedsDisplay() bool {
 	return layer.needsDisplay
@@ -119,21 +121,32 @@ func (layer *BasicLayer) DisplayIfNeeded(ctx LayerDrawing) {
 // Display naively splats all of the buffer's pixels into the parent's content
 func (layer *BasicLayer) Display(ctx LayerDrawing) {
 	// Eventually we'll need to convert into the destination coordinate space
-	fmt.Printf("Drawing %T %v into %T %v\n", layer, layer, ctx, ctx)
+	// fmt.Printf("Drawing %T %v into %T %v\n", layer, layer, ctx, ctx)
 
 	var x, y = layer.x, layer.y
-	content := layer.buffer
-	for contentY := 0; contentY < content.Height; contentY++ {
-		row := content.GetRow(contentY)
-		// Clip rounded corners in a very simple way
-		if layer.radius > 0 {
-			i := layer.roundRectInset(contentY)
-			ctx.DrawRow(row[2*i:len(row)-2*i], x+i, y)
+	if drawer, ok := layer.identity.(LayerDrawer); ok {
+		var into LayerDrawing
+		if layer.buffer != nil {
+			into = layer.buffer
 		} else {
-			ctx.DrawRow(content.GetRow(contentY), x, y)
+			into = ctx
 		}
+		drawer.Draw(layer, into)
+	}
 
-		y++
+	if buffer := layer.buffer; buffer != nil {
+		for contentY := 0; contentY < buffer.Height; contentY++ {
+			row := buffer.GetRow(contentY)
+			// Clip rounded corners in a very simple way
+			if layer.radius > 0 {
+				i := layer.roundRectInset(contentY)
+				ctx.DrawRow(row[2*i:len(row)-2*i], x+i, y)
+			} else {
+				ctx.DrawRow(buffer.GetRow(contentY), x, y)
+			}
+
+			y++
+		}
 	}
 	for _, child := range layer.children {
 		child.Display(ctx)

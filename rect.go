@@ -12,7 +12,14 @@ type Rect struct {
 func (r Rect) ContentBounds() image.Rectangle {
 	return image.Rectangle{
 		Min: image.Point{0, 0},
-		Max: image.Point{int(r.w), int(r.h)},
+		Max: image.Point{r.w, r.h},
+	}
+}
+
+func (r Rect) Rectangle() image.Rectangle {
+	return image.Rectangle{
+		Min: image.Point{r.x, r.y},
+		Max: image.Point{r.x + r.w, r.y + r.h},
 	}
 }
 
