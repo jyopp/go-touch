@@ -15,7 +15,6 @@ func main() {
 			panic(err)
 		}
 
-		display.Clear()
 
 		// TODO: This needs to be an affine transform
 		calibration := TouchscreenCalibration{
