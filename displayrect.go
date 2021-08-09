@@ -63,7 +63,14 @@ func (dr *DisplayRect) DrawRow(row []byte, x, y int) {
 	if len(row) > len(bufRow) {
 		row = row[:len(bufRow)]
 	}
-	copy(bufRow, row)
+
+	for idx, src := range row {
+		if src != bufRow[idx] {
+			bufRow[idx] = src
+		}
+	}
+
+	// copy(bufRow, row)
 }
 
 func (dr *DisplayRect) Clip(rect Rect) DrawingContext {
