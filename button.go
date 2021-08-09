@@ -13,21 +13,24 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-const buttonFontSize = 21.0
-
 var buttonFont *truetype.Font
 var buttonFace font.Face
+var buttonFaceOpts truetype.Options
 
 func init() {
 	var err error
+	buttonFaceOpts = truetype.Options{
+		Size: 14.0,
+		DPI:  96.0,
+	}
 	if buttonFont, err = truetype.Parse(gomedium.TTF); err != nil {
 		panic(err)
 	}
-	buttonFace = truetype.NewFace(buttonFont, &truetype.Options{Size: buttonFontSize})
+	buttonFace = truetype.NewFace(buttonFont, &buttonFaceOpts)
 }
 
 type Button struct {
-	BasicLayer
+	BufferedLayer
 	Highlighted bool
 	OnTap       func()
 	Label       string
@@ -35,19 +38,17 @@ type Button struct {
 	Icon        image.Image
 }
 
-func NewButton(r Rect) *Button {
-	button := &Button{}
-	button.Init(r, button)
-	button.radius = 5
+func (b *Button) Init(frame Rect) *Button {
+	frame.radius = 5
 
-	button.Label = "Button"
-	button.context = freetype.NewContext()
-	button.context.SetDPI(72.0)
-	button.context.SetFont(buttonFont)
-	button.context.SetFontSize(buttonFontSize)
-	button.context.SetSrc(image.NewUniform(color.Black))
+	b.Label = "Button"
+	b.context = freetype.NewContext()
+	b.context.SetFont(buttonFont)
+	b.context.SetFontSize(buttonFaceOpts.Size)
+	b.context.SetDPI(buttonFaceOpts.DPI)
 
-	return button
+	b.BufferedLayer.Init(frame, b)
+	return b
 }
 
 func (b *Button) SetHighlighted(highlighted bool) {
