@@ -3,6 +3,7 @@ package main
 type Layer interface {
 	Children() []Layer
 	AddChild(Layer)
+	InsertChild(Layer, int)
 
 	Frame() Rect
 	SetFrame(frame Rect)
@@ -48,8 +49,19 @@ func (layer *BasicLayer) SetFrame(frame Rect) {
 
 func (layer *BasicLayer) AddChild(child Layer) {
 	layer.children = append(layer.children, child)
-	// child.SetParent(layer)
-	layer.needsDisplay = true
+}
+
+func (layer *BasicLayer) InsertChild(child Layer, index int) {
+	if index < len(layer.children) {
+		// Splice array into itself, duplicating element at index.
+		layer.children = append(layer.children[:index+1], layer.children[index:]...)
+		layer.children[index] = child
+	} else {
+		layer.children = append(layer.children, child)
+	}
+	for _, child := range layer.children[index:] {
+		child.SetNeedsDisplay()
+	}
 }
 
 func (layer *BasicLayer) HitTest(event TouchEvent) TouchTarget {
