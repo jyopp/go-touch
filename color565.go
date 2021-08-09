@@ -7,9 +7,9 @@ type Color565 struct {
 }
 
 func (c Color565) RGBA() (r, g, b, a uint32) {
-	r = uint32(c.b1 & 0b11111000)
-	g = uint32(c.b1<<5 | (c.b2>>5)<<2)
-	b = uint32(c.b2 << 3)
+	r = uint32(c.b2&0b11111000) << 8
+	g = uint32(c.b2<<5|(c.b1>>5)<<2) << 8
+	b = uint32(c.b1<<3) << 8
 	a = 0xFFFF
 	return
 }
@@ -36,17 +36,17 @@ func (model *ColorModel565) Convert(c color.Color) color.Color {
 		g = 0xFFFF * g / a
 		b = 0xFFFF * b / a
 	}
-	converted.b1, converted.b2 = pixel565(byte(r), byte(g), byte(b))
+	converted.b1, converted.b2 = pixel565(byte(r>>8), byte(g>>8), byte(b>>8))
 	return converted
 }
 
-func (model *ColorModel565) FillRGB(ctx DrawingContext, rect Rect, r, g, b byte) {
-	b1, b2 := pixel565(r, g, b)
+func (model *ColorModel565) Fill(ctx DrawingContext, rect Rect, color color.Color) {
+	data := model.Convert(color).(Color565)
 	w2 := rect.w * 2
 	row := make([]byte, w2)
 
 	for i := 0; i < w2; i += 2 {
-		row[i], row[i+1] = b1, b2
+		row[i], row[i+1] = data.b1, data.b2
 	}
 
 	// Copy the pixel row into all relevant output lines

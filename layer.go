@@ -98,7 +98,7 @@ func (layer *BasicLayer) Display(ctx DrawingContext) {
 		// TODO: Throw an error? Refuse to draw?
 		// Draw lime green for debugging
 		rect := Rect{x: 0, y: 0, w: layer.w, h: layer.h}
-		model565.FillRGB(ctx, rect, 0x00, 0xFF, 0x00)
+		model565.Fill(ctx, rect, model565.RGB(0x00, 0xFF, 0x00))
 	}
 
 	for _, child := range layer.children {

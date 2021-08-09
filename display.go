@@ -16,7 +16,7 @@ type Display struct {
 
 func NewDisplay(w, h int, framebuffer *os.File) *Display {
 	// Experimental MMAP, probably not robust.
-	data, err := syscall.Mmap(int(framebuffer.Fd()), 0, int(2*w*h), syscall.PROT_WRITE, syscall.MAP_SHARED)
+	data, err := syscall.Mmap(int(framebuffer.Fd()), 0, int(2*w*h), syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
 		panic("Can't get framebuffer")
 	}

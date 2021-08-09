@@ -61,13 +61,16 @@ func (b *Button) SetHighlighted(highlighted bool) {
 func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 	bounds := b.Rect.Bounds()
 
+	var bgColor, textColor color.Color
 	if b.Highlighted {
-		model565.FillRGB(ctx, bounds, 0x66, 0x99, 0xCC)
-		b.context.SetSrc(image.NewUniform(color.White))
+		bgColor = model565.RGB(0x66, 0x99, 0xCC)
+		textColor = color.White
 	} else {
-		model565.FillRGB(ctx, bounds, 0xFF, 0xFE, 0xFC)
-		b.context.SetSrc(image.NewUniform(color.Black))
+		bgColor = model565.RGB(0xFF, 0xFE, 0xFC)
+		textColor = color.Black
 	}
+	model565.Fill(ctx, bounds, bgColor)
+	b.context.SetSrc(image.NewUniform(textColor))
 
 	if b.Icon != nil {
 		iconX := (bounds.w - b.Icon.Bounds().Dx()) / 2
