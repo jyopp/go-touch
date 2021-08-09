@@ -36,7 +36,7 @@ func main() {
 		background.Brightness = 0xE0
 
 		buttonArea := background.Inset(10, 10)
-		icon, _ := ReadImage("note.png")
+		icon, _ := Resources.ReadPNG("note.png")
 		for idx, rect := range buttonArea.GridVCount(4, 10) {
 			for idx2, rect := range rect.GridHCount(2, 10) {
 				button := NewButton(rect)
