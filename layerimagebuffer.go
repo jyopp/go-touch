@@ -76,13 +76,14 @@ func (layer *LayerImageBuffer) DrawRow(row []byte, x, y int) {
 		row = row[-x:]
 		x = -x
 	}
+
 	x += layer.rect.x
 	y += layer.rect.y
 
-	maxLen := 2 * layer.rect.w
-	byteX := 2 * x
-	if byteX+len(row) >= maxLen {
-		row = row[:maxLen-byteX]
+	if len(row) >= 2*layer.rect.w {
+		row = row[:len(row)-2*x]
 	}
-	copy(layer.pixels[y*maxLen+byteX:], row)
+
+	dst := layer.pixels[2*(layer.Width*y+x):]
+	copy(dst, row)
 }

@@ -44,8 +44,8 @@ func (dr *DisplayRect) IsBuffered() bool {
 func (dr *DisplayRect) GetRow(y int) []byte {
 	// TODO: Bounds checking
 	y += dr.y
-	rowStart := 2 * y * dr.display.Width
-	return dr.display.FrameBuffer[rowStart+2*dr.x : rowStart+2*(dr.x+dr.w)]
+	idx := 2 * (y*dr.display.Width + dr.x)
+	return dr.display.FrameBuffer[idx : idx+2*dr.w]
 }
 
 func (dr *DisplayRect) DrawRow(row []byte, x, y int) {
@@ -58,7 +58,10 @@ func (dr *DisplayRect) DrawRow(row []byte, x, y int) {
 		x = 0
 	}
 
-	bufRow := dr.GetRow(y)[2*x:]
+	// For speed, duplicate GetRow() above
+	y += dr.y
+	bufIdx := 2 * (y*dr.display.Width + dr.x)
+	bufRow := dr.display.FrameBuffer[bufIdx+2*x : bufIdx+2*dr.w]
 
 	if len(row) > len(bufRow) {
 		row = row[:len(bufRow)]

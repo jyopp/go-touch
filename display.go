@@ -37,9 +37,8 @@ func (d *Display) DrawPixel(x, y int, r, g, b byte) {
 	if x < 0 || y < 0 || x >= d.Width || y >= d.Height {
 		return
 	}
-	var pixel [2]byte
-	pixel[0], pixel[1] = pixel565(r, g, b)
-	copy(d.FrameBuffer[2*(d.Width*y+x):], pixel[:])
+	i := 2 * (d.Width*y + x)
+	d.FrameBuffer[i], d.FrameBuffer[i+1] = pixel565(r, g, b)
 }
 
 func (d *Display) AddLayer(layer Layer) {
