@@ -64,6 +64,8 @@ func (d *Display) Update() {
 	for _, layer := range d.Layers {
 		layer.DisplayIfNeeded(d.Subrect(layer.Frame()))
 	}
+	// Cheat and put some stats logging here
+	model565.DumpStats()
 }
 
 func (d *Display) Subrect(r Rect) *DisplayRect {

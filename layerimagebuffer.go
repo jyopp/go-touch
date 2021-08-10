@@ -43,7 +43,7 @@ func (layer *LayerImageBuffer) Set(x, y int, c color.Color) {
 }
 
 func (layer *LayerImageBuffer) ColorModel() color.Model {
-	return &model565
+	return model565
 }
 
 func (layer *LayerImageBuffer) Bounds() image.Rectangle {

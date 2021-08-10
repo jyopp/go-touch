@@ -23,7 +23,7 @@ func (dr *DisplayRect) Set(x, y int, c color.Color) {
 }
 
 func (dr *DisplayRect) ColorModel() color.Model {
-	return &model565
+	return model565
 }
 
 func (dr *DisplayRect) Bounds() (rect image.Rectangle) {
