@@ -36,6 +36,7 @@ type Button struct {
 	Label       string
 	context     *freetype.Context
 	Icon        image.Image
+	Disabled    bool
 }
 
 func (b *Button) Init(frame Rect) *Button {
@@ -52,6 +53,9 @@ func (b *Button) Init(frame Rect) *Button {
 }
 
 func (b *Button) SetHighlighted(highlighted bool) {
+	if b.Disabled {
+		highlighted = false
+	}
 	if highlighted == b.Highlighted {
 		return
 	}
@@ -63,7 +67,10 @@ func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 	bounds := b.Rect.Bounds()
 
 	var bgColor, textColor color.Color
-	if b.Highlighted {
+	if b.Disabled {
+		bgColor = color.Gray{0xDD}
+		textColor = color.Gray{0xAA}
+	} else if b.Highlighted {
 		bgColor = model565.RGB(0x66, 0x99, 0xCC)
 		textColor = color.White
 	} else {
