@@ -9,9 +9,16 @@ type Color565 struct {
 }
 
 func (c Color565) RGBA() (r, g, b, a uint32) {
-	r = uint32(c.b2&0b11111000) * 0x101
-	g = uint32(c.b2<<5|(c.b1>>5)<<2) * 0x101
-	b = uint32(c.b1<<3) * 0x101
+	// No precision is lost as long as the high bits are accurate.
+	// Bits are duplicated to maximize coverage of the available gamut.
+
+	// Duplicate 5 bits three times; Fill 15/16 bits, low bit always unset.
+	r = (uint32(c.b2) >> 3) * 0b0000100001000010
+	b = (uint32(c.b1) & 0b11111) * 0b0000100001000010
+	// Stretching 6 green bits striped across two bytes is much harder...
+	// Doubles 6 bits to fill into 12/16 bits, leaving 4 unset.
+	// To use fewer ops, multiplication constant is downshifted 2 bits.
+	g = (uint32(c.b2<<5|c.b1>>3) & 0b11111100) * 0b0000000100000100
 	a = 0xFFFF
 	return
 }
