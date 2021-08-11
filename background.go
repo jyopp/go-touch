@@ -1,6 +1,9 @@
 package main
 
-import "image/color"
+import (
+	"image/color"
+	"image/draw"
+)
 
 type Background struct {
 	BasicLayer
@@ -41,6 +44,6 @@ func (background *Background) Draw(layer Layer, ctx DrawingContext) {
 			}
 		}
 		// Black out rounded corners on the background
-		ctx.DrawRow(row, background.x, background.y+y)
+		ctx.DrawRow(row, background.x, background.y+y, draw.Src)
 	}
 }

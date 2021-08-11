@@ -14,7 +14,7 @@ type DrawingContext interface {
 	// PutRow writes a row of pixel data into the receiver at (x, y)
 	// The receiver is responsible for bounds checking:
 	// x and y may be negative, and x, y, and y + len(row) may exceed receiver's dimensions
-	DrawRow(row []byte, x, y int)
+	DrawRow(row []byte, x, y int, op draw.Op)
 
 	// Fill a rect (possibly rounded) with color
 	Fill(rect Rect, color color.Color)

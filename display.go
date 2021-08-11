@@ -116,13 +116,8 @@ func (d *Display) Flush() {
 		row := buf.GetRow(y)
 		for i := rowL; i < rowR; i += 4 {
 			sPxl := row[i : i+4 : i+4]
-			// TODO: Blend modes. Currently just thresholded at 50% opacity.
-			if sPxl[3] > 0x80 {
-				// Smush the pixel down to 16 bits and assign.
-				fbRow[i>>1], fbRow[i>>1+1] = pixel565(sPxl[0], sPxl[1], sPxl[2])
-			} else {
-				fbRow[i>>1], fbRow[i>>1+1] = 0x00, 0x00
-			}
+			// Smush the pixel down to 16 bits and assign.
+			fbRow[i>>1], fbRow[i>>1+1] = pixel565(sPxl[0], sPxl[1], sPxl[2])
 		}
 	}
 

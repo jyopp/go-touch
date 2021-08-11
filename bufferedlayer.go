@@ -1,5 +1,7 @@
 package main
 
+import "image/draw"
+
 type BufferedLayer struct {
 	BasicLayer
 	buffer      DisplayBuffer
@@ -32,9 +34,9 @@ func (layer *BufferedLayer) Display(ctx DrawingContext) {
 		// Clip rounded corners in a very simple way
 		if layer.radius > 0 {
 			i := layer.roundRectInset(y - min.Y)
-			ctx.DrawRow(row[4*i:len(row)-4*i], min.X+i, y)
+			ctx.DrawRow(row[4*i:len(row)-4*i], min.X+i, y, draw.Over)
 		} else {
-			ctx.DrawRow(row, min.X, y)
+			ctx.DrawRow(row, min.X, y, draw.Over)
 		}
 	}
 }

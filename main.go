@@ -39,7 +39,7 @@ func main() {
 		buttonArea := background.Inset(10, 10)
 
 		statusArea := &OpaqueLayer{}
-		transparentWhite := color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xF0}
+		transparentWhite := color.RGBA{R: 0x99, G: 0x99, B: 0x99, A: 0x99}
 		statusArea.Init(buttonArea.SliceV(-40, 10), transparentWhite)
 		statusArea.radius = 5
 		background.AddChild(statusArea)

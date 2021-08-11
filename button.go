@@ -68,8 +68,8 @@ func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 
 	var bgColor, textColor color.Color
 	if b.Disabled {
-		bgColor = color.Gray{0xDD}
-		textColor = color.Gray{0xAA}
+		bgColor = color.RGBA{R: 0xBB, G: 0xBB, B: 0xBB, A: 0xDD}
+		textColor = color.Gray{0x77}
 	} else if b.Highlighted {
 		bgColor = color.RGBA{R: 0x66, G: 0x99, B: 0xCC, A: 0xFF}
 		textColor = color.White
