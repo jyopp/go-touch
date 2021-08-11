@@ -37,10 +37,6 @@ func (dr *DisplayRect) At(x, y int) color.Color {
 	return Color565{row[2*x], row[2*x+1]}
 }
 
-func (dr *DisplayRect) IsBuffered() bool {
-	return false
-}
-
 func (dr *DisplayRect) GetRow(y int) []byte {
 	// TODO: Bounds checking
 	y += dr.y

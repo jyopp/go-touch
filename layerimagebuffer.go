@@ -57,10 +57,6 @@ func (layer *LayerImageBuffer) At(x, y int) color.Color {
 	return Color565{layer.pixels[offset], layer.pixels[offset+1]}
 }
 
-func (layer *LayerImageBuffer) IsBuffered() bool {
-	return true
-}
-
 func (layer *LayerImageBuffer) GetRow(y int) []byte {
 	y += layer.rect.y
 	rowOffset := 2 * (layer.Width*y + layer.rect.x)

@@ -93,7 +93,7 @@ func (model ColorModel565) Fill(ctx DrawingContext, rect Rect, color color.Color
 	}
 
 	// Copy the pixel row into all relevant output lines
-	if rect.radius > 0 && !ctx.IsBuffered() {
+	if rect.radius > 0 {
 		// Clip the corners when drawing into an unbuffered context
 		for y := 0; y < rect.h; y++ {
 			i := rect.roundRectInset(y)

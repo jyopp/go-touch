@@ -6,9 +6,6 @@ import "image/draw"
 // See LayerImageBuffer and DisplayRect.
 type DrawingContext interface {
 	draw.Image
-	// If this function returns false, pixels will be written directly to the
-	// appropriate parent buffer. When true, this contentRef is cached but must be composited.
-	IsBuffered() bool
 	// GetRow returns a slice of bytes with pixel data for one line of the raster.
 	GetRow(y int) []byte
 	// PutRow writes a row of pixel data into the receiver at (x, y)
