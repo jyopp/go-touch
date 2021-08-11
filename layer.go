@@ -16,6 +16,16 @@ type Layer interface {
 	Display(ctx DrawingContext)
 
 	HitTest(TouchEvent) TouchTarget
+
+	// TODO: Add IsOpaque()
+	// In a pre-rendering phase, collect the UNION of all child
+	// frames that need to be displayed with DrawingMode draw.Copy;
+	// In the rendering phase, draw dirty views in the global context,
+	// and (if the union rect is nonempty) draw all nondirty views
+	// that overlap the union rect in a clipped context.
+	// We may also choose to build a drawlist in which views that
+	// would be completely covered by another, opaque view are filtered
+	// out.
 }
 
 type TouchTarget interface {
@@ -97,8 +107,11 @@ func (layer *BasicLayer) DisplayIfNeeded(ctx DrawingContext) {
 	if layer.needsDisplay {
 		layer.Display(ctx)
 	} else {
+		bounds := ctx.Bounds()
 		for _, child := range layer.children {
-			child.DisplayIfNeeded(ctx.Clip(child.Frame()))
+			if child.NeedsDisplay() && bounds.Overlaps(child.Frame().Rectangle()) {
+				child.DisplayIfNeeded(ctx.Clip(child.Frame()))
+			}
 		}
 	}
 }

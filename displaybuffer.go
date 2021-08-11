@@ -104,11 +104,9 @@ func (b DisplayBuffer) DrawRow(row []byte, x, y int, op draw.Op) {
 // Marks a rect as needing to be drawn to the display.
 // If the buffer is not associated with a display, does nothing.
 func (b DisplayBuffer) SetDirty(rect Rect) {
-	if b.Display == nil {
-		return
+	if b.Display != nil {
+		b.Display.SetDirty(b.Rect.Intersect(rect.Rectangle()))
 	}
-	b.Display.SetDirty(b.Rect.Intersect(rect.Rectangle()))
-	println("Invalidated", b.Rect.String(), "~>", b.Rect.Intersect(rect.Rectangle()).String())
 }
 
 func (b DisplayBuffer) Clip(rect Rect) DrawingContext {
