@@ -1,5 +1,7 @@
 package main
 
+import "image/color"
+
 type Background struct {
 	BasicLayer
 	// Value from 0-255 controlling the brightness of the gradient
@@ -14,25 +16,31 @@ func (background *Background) Init(frame Rect) *Background {
 func (background *Background) Draw(layer Layer, ctx DrawingContext) {
 	bright := background.Brightness
 
-	var r, g, b byte
+	var c color.RGBA
+	c.A = 0xFF
+
 	//	g = byte((bright * 3) / 4)
 	w, h := background.w, background.h
-	row := make([]byte, 2*w)
+	row := make([]byte, 4*w)
 
 	rect := background.Bounds()
 	for y := 0; y < h; y++ {
-		b = byte(bright * y / h)
+		c.B = byte(bright * y / h)
+
+		cornerL := rect.roundRectInset(y)
+		cornerR := w - cornerL - 1
 		for x := 0; x < w; x++ {
-			r = byte(bright * x / w)
-			g = byte(bright) - r/4 - b/2
-			row[2*x], row[2*x+1] = pixel565(r, g, b)
+			i := 4 * x
+			pix := row[i : i+4 : i+4]
+			if x < cornerL || x > cornerR {
+				pix[0], pix[1], pix[2], pix[3] = 0, 0, 0, 0xFF
+			} else {
+				c.R = byte(bright * x / w)
+				c.G = byte(bright) - c.R/4 - c.B/2
+				pix[0], pix[1], pix[2], pix[3] = c.R, c.G, c.B, c.A
+			}
 		}
 		// Black out rounded corners on the background
-		for i := rect.roundRectInset(y); i > 0; {
-			i--
-			row[2*i], row[2*i+1] = 0x00, 0x00
-			row[2*(w-i-1)], row[2*(w-i)-1] = 0x00, 0x00
-		}
 		ctx.DrawRow(row, background.x, background.y+y)
 	}
 }

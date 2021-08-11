@@ -64,25 +64,25 @@ func (b *Button) SetHighlighted(highlighted bool) {
 }
 
 func (b *Button) Draw(layer Layer, ctx DrawingContext) {
-	bounds := b.Rect.Bounds()
+	bounds := b.Rect
 
 	var bgColor, textColor color.Color
 	if b.Disabled {
 		bgColor = color.Gray{0xDD}
 		textColor = color.Gray{0xAA}
 	} else if b.Highlighted {
-		bgColor = model565.RGB(0x66, 0x99, 0xCC)
+		bgColor = color.RGBA{R: 0x66, G: 0x99, B: 0xCC, A: 0xFF}
 		textColor = color.White
 	} else {
-		bgColor = model565.RGB(0xFF, 0xFE, 0xFC)
+		bgColor = color.RGBA{R: 0xFF, G: 0xFE, B: 0xFC, A: 0xFF}
 		textColor = color.Black
 	}
-	model565.Fill(ctx, bounds, bgColor)
+	ctx.Fill(bounds, bgColor)
 	b.context.SetSrc(image.NewUniform(textColor))
 
 	if b.Icon != nil {
 		iconX := (bounds.w - b.Icon.Bounds().Dx()) / 2
-		draw.Draw(ctx, bounds.Rectangle(), b.Icon, image.Pt(-iconX, -3), draw.Src)
+		draw.Draw(ctx, bounds.Rectangle(), b.Icon, image.Pt(-iconX, -8), draw.Over)
 	}
 
 	textContext := b.context
@@ -90,8 +90,8 @@ func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 	textContext.SetClip(bounds.Rectangle())
 
 	textWidth := font.MeasureString(buttonFace, b.Label).Round()
-	textX := (bounds.w - textWidth) / 2
-	if _, err := textContext.DrawString(b.Label, fixed.P(textX, bounds.Bottom()-10)); err != nil {
+	textX := bounds.x + (bounds.w-textWidth)/2
+	if _, err := textContext.DrawString(b.Label, fixed.P(textX, bounds.Bottom()-12)); err != nil {
 		fmt.Printf("%v drawing string: %s\n", err, b.Label)
 	}
 }

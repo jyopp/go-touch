@@ -1,5 +1,7 @@
 package main
 
+import "image/color"
+
 type Layer interface {
 	Children() []Layer
 	AddChild(Layer)
@@ -44,6 +46,7 @@ func (layer *BasicLayer) Frame() Rect {
 }
 
 func (layer *BasicLayer) SetFrame(frame Rect) {
+	layer.needsDisplay = layer.needsDisplay || layer.Rect != frame
 	layer.Rect = frame
 }
 
@@ -110,11 +113,16 @@ func (layer *BasicLayer) Display(ctx DrawingContext) {
 		// TODO: Throw an error? Refuse to draw?
 		// Draw lime green for debugging
 		rect := Rect{x: 0, y: 0, w: layer.w, h: layer.h}
-		model565.Fill(ctx, rect, model565.RGB(0x00, 0xFF, 0x00))
+		limeGreen := color.RGBA{R: 0, G: 0xFF, B: 0, A: 0xFF}
+		ctx.Fill(rect, limeGreen)
 	}
+
+	// TODO: Let delegates decide what to mark dirty
+	ctx.SetDirty(layer.Rect)
 
 	for _, child := range layer.children {
 		child.Display(ctx.Clip(child.Frame()))
 	}
+
 	layer.needsDisplay = false
 }

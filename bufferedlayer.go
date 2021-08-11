@@ -2,24 +2,22 @@ package main
 
 type BufferedLayer struct {
 	BasicLayer
-	buffer      *LayerImageBuffer
+	buffer      DisplayBuffer
 	needsRedraw bool
 }
 
 // TODO: Return an error?
 func (layer *BufferedLayer) Init(frame Rect, identity interface{}) {
 	layer.BasicLayer.Init(frame, identity)
-	layer.buffer = NewLayerImageBuffer(frame.w, frame.h)
+	layer.buffer = NewDisplayBuffer(nil, frame)
 	layer.needsRedraw = true
 }
 
 func (layer *BufferedLayer) SetFrame(frame Rect) {
-	if layer.buffer != nil && (frame.w != layer.buffer.Width || frame.h != layer.buffer.Height) {
-		layer.buffer = NewLayerImageBuffer(frame.w, frame.h)
-		layer.needsDisplay = true
+	layer.BasicLayer.SetFrame(frame)
+	if layer.buffer.SetFrame(frame) {
 		layer.needsRedraw = true
 	}
-	layer.BasicLayer.SetFrame(frame)
 }
 
 func (layer *BufferedLayer) Display(ctx DrawingContext) {
@@ -28,14 +26,15 @@ func (layer *BufferedLayer) Display(ctx DrawingContext) {
 		layer.BasicLayer.Display(buffer)
 	}
 
-	for contentY := 0; contentY < buffer.Height; contentY++ {
-		row := buffer.GetRow(contentY)
+	min, max := buffer.Rect.Min, buffer.Rect.Max
+	for y := min.Y; y < max.Y; y++ {
+		row := buffer.GetRow(y)
 		// Clip rounded corners in a very simple way
 		if layer.radius > 0 {
-			i := layer.roundRectInset(contentY)
-			ctx.DrawRow(row[2*i:len(row)-2*i], i, contentY)
+			i := layer.roundRectInset(y - min.Y)
+			ctx.DrawRow(row[4*i:len(row)-4*i], min.X+i, y)
 		} else {
-			ctx.DrawRow(buffer.GetRow(contentY), 0, contentY)
+			ctx.DrawRow(row, min.X, y)
 		}
 	}
 }

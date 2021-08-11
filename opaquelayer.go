@@ -16,5 +16,5 @@ func (l *OpaqueLayer) Init(frame Rect, background color.Color) *OpaqueLayer {
 }
 
 func (l *OpaqueLayer) Draw(layer Layer, ctx DrawingContext) {
-	model565.Fill(ctx, l.Bounds(), l.Background)
+	ctx.Fill(l.Rect, l.Background)
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"os"
 )
 
@@ -14,7 +15,6 @@ func main() {
 		} else {
 			panic(err)
 		}
-
 
 		// TODO: This needs to be an affine transform
 		calibration := TouchscreenCalibration{
@@ -30,13 +30,22 @@ func main() {
 		// }
 		// fmt.Printf("Screen draw averaged %0.2dms over 32 passes\n", time.Since(start).Milliseconds()/32.0)
 
-		background := NewBackground(display.Bounds())
+		background := &Background{}
+		background.Init(display.Bounds())
 		background.radius = 8
-		background.Brightness = 0xE0
+		background.Brightness = 0xEE
+
 
 		buttonArea := background.Inset(10, 10)
+
+		statusArea := &OpaqueLayer{}
+		transparentWhite := color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xF0}
+		statusArea.Init(buttonArea.SliceV(-40, 10), transparentWhite)
+		statusArea.radius = 5
+		background.AddChild(statusArea)
+
 		icon, _ := Resources.ReadPNG("note.png")
-		for idx, rect := range buttonArea.GridVCount(4, 10) {
+		for idx, rect := range buttonArea.GridVCount(3, 10) {
 			for idx2, rect := range rect.GridHCount(2, 10) {
 				button := NewButton(rect)
 				button.Label = fmt.Sprintf("Button %d", 2*idx+idx2)
