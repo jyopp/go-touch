@@ -24,12 +24,6 @@ func main() {
 		}
 		calibration.Prepare(display)
 
-		// start := time.Now()
-		// for i := int32(0); i <= 0xFF; i += 8 {
-		// 	display.DrawBackground(i)
-		// }
-		// fmt.Printf("Screen draw averaged %0.2dms over 32 passes\n", time.Since(start).Milliseconds()/32.0)
-
 		background := &Background{}
 		background.Init(display.Bounds())
 		background.radius = 8

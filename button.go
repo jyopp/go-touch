@@ -77,7 +77,7 @@ func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 		bgColor = color.RGBA{R: 0xFF, G: 0xFE, B: 0xFC, A: 0xFF}
 		textColor = color.Black
 	}
-	ctx.Fill(bounds, bgColor)
+	ctx.Fill(bounds, bgColor, draw.Over)
 	b.context.SetSrc(image.NewUniform(textColor))
 
 	if b.Icon != nil {

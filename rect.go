@@ -128,28 +128,3 @@ func (r *Rect) GridHCount(count, pad int) []Rect {
 	itemW := (r.w + pad) / count
 	return r.GridHWidth(itemW-pad, pad)
 }
-
-var _roundInsets = [9][]int{
-	{},
-	{1},
-	{2, 1},
-	{3, 2, 1},
-	{4, 2, 1, 1},
-	{5, 3, 2, 1, 1},
-	{6, 4, 3, 2, 1, 1},
-	{7, 5, 3, 2, 2, 1, 1},
-	{8, 6, 4, 3, 2, 2, 1, 1},
-}
-
-// private function; Returns the number of pixels that should be clipped from a given line
-func (r Rect) roundRectInset(line int) int {
-	if r.radius < 9 {
-		if line < r.radius {
-			return _roundInsets[r.radius][line]
-		}
-		if line >= r.h-r.radius {
-			return _roundInsets[r.radius][r.h-line-1]
-		}
-	}
-	return 0
-}

@@ -67,7 +67,9 @@ func (d *Display) Clear() {
 // superset of all drawn rects is flushed to the display.
 func (d *Display) Update() {
 	for _, layer := range d.Layers {
-		layer.DisplayIfNeeded(d.DrawBuffer.Clip(layer.Frame()))
+		if clip := d.DrawBuffer.Clip(layer.Frame().Rectangle()); clip != nil {
+			layer.DisplayIfNeeded(clip)
+		}
 	}
 	d.Flush()
 }
@@ -81,10 +83,13 @@ func (d *Display) SetDirty(rect image.Rectangle) {
 // redraws all layers.
 // The entire DrawBuffer is flushed to the display before returning.
 func (d *Display) Redraw() {
-	d.DrawBuffer.Clear()
-	d.DirtyRect = d.DrawBuffer.Rect
+	buf := d.DrawBuffer
+	buf.Clear()
+	d.DirtyRect = buf.Rect
 	for _, layer := range d.Layers {
-		layer.Display(d.DrawBuffer.Clip(layer.Frame()))
+		if clip := buf.Clip(layer.Frame().Rectangle()); clip != nil {
+			layer.Display(clip)
+		}
 	}
 	d.Flush()
 }

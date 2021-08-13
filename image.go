@@ -23,7 +23,7 @@ func (i *ImageLayer) Init(frame Rect, image image.Image) *ImageLayer {
 
 func (i *ImageLayer) Draw(layer Layer, ctx DrawingContext) {
 	if _, _, _, a := i.Background.RGBA(); a > 0x10 {
-		ctx.Fill(i.Bounds(), i.Background)
+		ctx.Fill(i.Frame(), i.Background, draw.Over)
 	}
 
 	if i.Image != nil {

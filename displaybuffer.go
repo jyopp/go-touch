@@ -103,22 +103,27 @@ func (b DisplayBuffer) DrawRow(row []byte, x, y int, op draw.Op) {
 
 // Marks a rect as needing to be drawn to the display.
 // If the buffer is not associated with a display, does nothing.
-func (b DisplayBuffer) SetDirty(rect Rect) {
+func (b DisplayBuffer) SetDirty(rect image.Rectangle) {
 	if b.Display != nil {
-		b.Display.SetDirty(b.Rect.Intersect(rect.Rectangle()))
+		b.Display.SetDirty(rect.Intersect(b.Rect))
 	}
 }
 
-func (b DisplayBuffer) Clip(rect Rect) DrawingContext {
+func (b DisplayBuffer) Clip(rect image.Rectangle) DrawingContext {
+	rect = rect.Intersect(b.Rect)
+	if rect.Empty() {
+		return nil
+	}
+
 	// TODO: Information about rects with negative origin
 	// values could be lost here, and may need special treatment.
 	return DisplayBuffer{
-		RGBA:    b.SubImage(rect.Rectangle()).(*image.RGBA),
+		RGBA:    b.SubImage(rect).(*image.RGBA),
 		Display: b.Display,
 	}
 }
 
-func (b DisplayBuffer) Fill(rect Rect, c color.Color) {
+func (b DisplayBuffer) Fill(rect Rect, c color.Color, op draw.Op) {
 	rgba := color.RGBAModel.Convert(c).(color.RGBA)
 	rowLen := rect.w * 4
 	row := make([]byte, rowLen)
@@ -127,16 +132,16 @@ func (b DisplayBuffer) Fill(rect Rect, c color.Color) {
 		i *= 2
 	}
 
-	op := draw.Src
 	if rgba.A < 0xFF {
 		op = draw.Over
 	}
 
 	// Copy the pixel row into all relevant output lines
 	if rect.radius > 0 {
+		mask := CornerMask{rect.Rectangle(), rect.radius}
 		// Clip the corners when drawing into an unbuffered context
 		for y := 0; y < rect.h; y++ {
-			i := rect.roundRectInset(y)
+			i := mask.RelativeRowInset(y)
 			b.DrawRow(row[4*i:rowLen-4*i], rect.x+i, rect.y+y, op)
 		}
 	} else {
@@ -145,5 +150,5 @@ func (b DisplayBuffer) Fill(rect Rect, c color.Color) {
 		}
 	}
 
-	b.SetDirty(rect)
+	b.SetDirty(rect.Rectangle())
 }

@@ -1,6 +1,8 @@
 package main
 
-import "image/draw"
+import (
+	"image/draw"
+)
 
 type BufferedLayer struct {
 	BasicLayer
@@ -25,18 +27,11 @@ func (layer *BufferedLayer) SetFrame(frame Rect) {
 func (layer *BufferedLayer) Display(ctx DrawingContext) {
 	buffer := layer.buffer
 	if layer.needsRedraw {
+		buffer.Clear()
 		layer.BasicLayer.Display(buffer)
 	}
 
-	min, max := buffer.Rect.Min, buffer.Rect.Max
-	for y := min.Y; y < max.Y; y++ {
-		row := buffer.GetRow(y)
-		// Clip rounded corners in a very simple way
-		if layer.radius > 0 {
-			i := layer.roundRectInset(y - min.Y)
-			ctx.DrawRow(row[4*i:len(row)-4*i], min.X+i, y, draw.Over)
-		} else {
-			ctx.DrawRow(row, min.X, y, draw.Over)
-		}
-	}
+	// fmt.Printf("Compositing %T %v into %T %v\n", layer.identity, buffer.Rect, ctx, ctx.Bounds())
+	draw.Draw(ctx, buffer.Rect, buffer, buffer.Rect.Min, draw.Over)
+	ctx.SetDirty(buffer.Rect)
 }

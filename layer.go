@@ -1,6 +1,9 @@
 package main
 
-import "image/color"
+import (
+	"image/color"
+	"image/draw"
+)
 
 type Layer interface {
 	Children() []Layer
@@ -105,19 +108,27 @@ func (layer *BasicLayer) SetNeedsDisplay() {
 
 func (layer *BasicLayer) DisplayIfNeeded(ctx DrawingContext) {
 	if layer.needsDisplay {
-		layer.Display(ctx)
+		// When calling interface methods, call from outermost
+		// struct type so that embedding types can override methods.
+		if l, ok := layer.identity.(Layer); ok {
+			l.Display(ctx)
+		} else {
+			layer.Display(ctx)
+		}
 	} else {
-		bounds := ctx.Bounds()
 		for _, child := range layer.children {
-			if child.NeedsDisplay() && bounds.Overlaps(child.Frame().Rectangle()) {
-				child.DisplayIfNeeded(ctx.Clip(child.Frame()))
+			if clip := ctx.Clip(child.Frame().Rectangle()); clip != nil {
+				child.DisplayIfNeeded(clip)
 			}
 		}
 	}
 }
 
-// Display naively splats all of the buffer's pixels into the parent's content
+// Display redraws the layer and its sublayers as needed, directly into ctx
 func (layer *BasicLayer) Display(ctx DrawingContext) {
+	// fmt.Printf("Drawing %T into %T %v\n", layer.identity, ctx, ctx.Bounds())
+
+	layerRect := layer.Rectangle()
 	// Eventually we'll need to convert into the destination coordinate space
 	// fmt.Printf("Drawing %T %v into %T %v\n", layer, layer, ctx, ctx)
 	if drawer, ok := layer.identity.(LayerDrawer); ok {
@@ -125,16 +136,19 @@ func (layer *BasicLayer) Display(ctx DrawingContext) {
 	} else {
 		// TODO: Throw an error? Refuse to draw?
 		// Draw lime green for debugging
-		rect := Rect{x: 0, y: 0, w: layer.w, h: layer.h}
 		limeGreen := color.RGBA{R: 0, G: 0xFF, B: 0, A: 0xFF}
-		ctx.Fill(rect, limeGreen)
+		ctx.Fill(layer.Rect, limeGreen, draw.Src)
 	}
 
 	// TODO: Let delegates decide what to mark dirty
-	ctx.SetDirty(layer.Rect)
+	ctx.SetDirty(layerRect)
 
 	for _, child := range layer.children {
-		child.Display(ctx.Clip(child.Frame()))
+		if clip := ctx.Clip(child.Frame().Rectangle()); clip != nil {
+			if child.NeedsDisplay() || clip.Bounds().Overlaps(layerRect) {
+				child.Display(clip)
+			}
+		}
 	}
 
 	layer.needsDisplay = false

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image"
 	"image/color"
 	"image/draw"
 )
@@ -17,11 +18,11 @@ type DrawingContext interface {
 	DrawRow(row []byte, x, y int, op draw.Op)
 
 	// Fill a rect (possibly rounded) with color
-	Fill(rect Rect, color color.Color)
+	Fill(rect Rect, color color.Color, op draw.Op)
 
 	// Marks this drawing context as needing to be flushed after drawing.
-	SetDirty(rect Rect)
+	SetDirty(rect image.Rectangle)
 
 	// Returns a DrawingContext masked to the intersection with rect.
-	Clip(rect Rect) DrawingContext
+	Clip(rect image.Rectangle) DrawingContext
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"image/color"
+	"image/draw"
 )
 
 type OpaqueLayer struct {
@@ -16,5 +17,9 @@ func (l *OpaqueLayer) Init(frame Rect, background color.Color) *OpaqueLayer {
 }
 
 func (l *OpaqueLayer) Draw(layer Layer, ctx DrawingContext) {
-	ctx.Fill(l.Rect, l.Background)
+	op := draw.Src
+	if _, _, _, a := l.Background.RGBA(); a < 0xFFFF {
+		op = draw.Over
+	}
+	ctx.Fill(l.Rect, l.Background, op)
 }
