@@ -7,8 +7,7 @@ import (
 
 type BufferedLayer struct {
 	BasicLayer
-	buffer      *DisplayBuffer
-	needsRedraw bool
+	buffer *DisplayBuffer
 }
 
 func (layer *BufferedLayer) SetFrame(frame image.Rectangle) {
@@ -18,15 +17,14 @@ func (layer *BufferedLayer) SetFrame(frame image.Rectangle) {
 	layer.BasicLayer.SetFrame(frame)
 	if layer.buffer == nil {
 		layer.buffer = NewDisplayBuffer(nil, frame)
-		layer.needsRedraw = true
-	} else if layer.buffer.SetFrame(frame) {
-		layer.needsRedraw = true
+	} else {
+		layer.buffer.SetFrame(frame)
 	}
 }
 
 func (layer *BufferedLayer) Display(ctx DrawingContext) {
 	buffer := layer.buffer
-	if layer.needsRedraw {
+	if layer.needsDisplay {
 		layer.BasicLayer.Display(buffer)
 	}
 
