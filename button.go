@@ -39,8 +39,7 @@ type Button struct {
 	Disabled    bool
 }
 
-func (b *Button) Init(frame Rect) *Button {
-	frame.radius = 5
+func (b *Button) Init(frame image.Rectangle) *Button {
 
 	b.Label = "Button"
 	b.context = freetype.NewContext()
@@ -49,6 +48,8 @@ func (b *Button) Init(frame Rect) *Button {
 	b.context.SetDPI(buttonFaceOpts.DPI)
 
 	b.BufferedLayer.Init(frame, b)
+	b.radius = 5
+
 	return b
 }
 
@@ -64,7 +65,6 @@ func (b *Button) SetHighlighted(highlighted bool) {
 }
 
 func (b *Button) Draw(layer Layer, ctx DrawingContext) {
-	bounds := b.Rect
 
 	var bgColor, textColor color.Color
 	if b.Disabled {
@@ -77,35 +77,35 @@ func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 		bgColor = color.RGBA{R: 0xFF, G: 0xFE, B: 0xFC, A: 0xFF}
 		textColor = color.Black
 	}
-	ctx.Fill(bounds, bgColor, draw.Over)
+	ctx.Fill(b.Rectangle, bgColor, b.radius, draw.Over)
 	b.context.SetSrc(image.NewUniform(textColor))
 
 	if b.Icon != nil {
-		iconX := (bounds.w - b.Icon.Bounds().Dx()) / 2
-		draw.Draw(ctx, bounds.Rectangle(), b.Icon, image.Pt(-iconX, -8), draw.Over)
+		iconX := (b.Dx() - b.Icon.Bounds().Dx()) / 2
+		draw.Draw(ctx, b.Rectangle, b.Icon, image.Pt(-iconX, -10), draw.Over)
 	}
 
 	textContext := b.context
 	textContext.SetDst(ctx)
-	textContext.SetClip(bounds.Rectangle())
+	textContext.SetClip(b.Rectangle)
 
 	textWidth := font.MeasureString(buttonFace, b.Label).Round()
-	textX := bounds.x + (bounds.w-textWidth)/2
-	if _, err := textContext.DrawString(b.Label, fixed.P(textX, bounds.Bottom()-12)); err != nil {
+	textX := (b.Min.X + b.Max.X - textWidth) / 2
+	if _, err := textContext.DrawString(b.Label, fixed.P(textX, b.Max.Y-13)); err != nil {
 		fmt.Printf("%v drawing string: %s\n", err, b.Label)
 	}
 }
 
 func (b *Button) StartTouch(event TouchEvent) {
-	b.SetHighlighted(b.Contains(event.X, event.Y))
+	b.SetHighlighted(event.In(b.Rectangle))
 }
 
 func (b *Button) UpdateTouch(event TouchEvent) {
-	b.SetHighlighted(b.Contains(event.X, event.Y))
+	b.SetHighlighted(event.In(b.Rectangle))
 }
 
 func (b *Button) EndTouch(event TouchEvent) {
-	if b.Contains(event.X, event.Y) && b.OnTap != nil {
+	if event.In(b.Rectangle) && b.OnTap != nil {
 		b.OnTap()
 	}
 	b.SetHighlighted(false)

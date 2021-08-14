@@ -8,8 +8,8 @@ type TouchscreenCalibration struct {
 }
 
 func (c *TouchscreenCalibration) Prepare(display *Display) {
-	c.convW = (display.Width << 16) / (c.Right - c.Left)
-	c.convH = (display.Height << 16) / (c.Top - c.Bottom)
+	c.convW = (display.Size.X << 16) / (c.Right - c.Left)
+	c.convH = (display.Size.Y << 16) / (c.Top - c.Bottom)
 	c.convZ = (1 << 24) / (c.Weak - c.Strong)
 }
 

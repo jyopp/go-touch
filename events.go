@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"image"
 	"os"
 )
 
@@ -23,8 +24,8 @@ type EventStream struct {
 }
 
 type TouchEvent struct {
+	image.Point
 	Pressed  bool
-	X, Y     int
 	Pressure int
 }
 

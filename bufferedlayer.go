@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image"
 	"image/draw"
 )
 
@@ -11,13 +12,13 @@ type BufferedLayer struct {
 }
 
 // TODO: Return an error?
-func (layer *BufferedLayer) Init(frame Rect, identity interface{}) {
+func (layer *BufferedLayer) Init(frame image.Rectangle, identity interface{}) {
 	layer.BasicLayer.Init(frame, identity)
 	layer.buffer = NewDisplayBuffer(nil, frame)
 	layer.needsRedraw = true
 }
 
-func (layer *BufferedLayer) SetFrame(frame Rect) {
+func (layer *BufferedLayer) SetFrame(frame image.Rectangle) {
 	layer.BasicLayer.SetFrame(frame)
 	if layer.buffer.SetFrame(frame) {
 		layer.needsRedraw = true

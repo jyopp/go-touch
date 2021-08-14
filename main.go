@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"image/jpeg"
+	"net/http"
 	"os"
+	"sync"
 )
 
 func main() {
@@ -29,23 +32,60 @@ func main() {
 		background.radius = 8
 		background.Brightness = 0xEE
 
+		downloadBackground := func(button *Button) {
+			button.Label = "Downloading…"
+			button.SetNeedsDisplay()
+			display.Update()
 
-		buttonArea := background.Inset(10, 10)
+			const url = "https://news-cdn.softpedia.com/images/news2/here-are-all-iphone-and-mac-wallpapers-ever-released-by-apple-528707-3.jpg"
+			if resp, err := http.Get(url); err == nil {
+				defer resp.Body.Close()
+				if wallpaper, err := jpeg.Decode(resp.Body); err == nil {
+					imageLayer := &ImageLayer{}
+					imageLayer.Init(background.Bounds(), wallpaper)
+					imageLayer.Background = color.RGBA{R: 0x55, G: 0x55, B: 0x55, A: 0xFF}
+					background.InsertChild(imageLayer, 0)
+					button.Label = "Loaded"
+				} else {
+					button.Label = "Decode Err"
+				}
+			} else {
+				button.Label = "HTTP Err"
+			}
+			button.Disabled = true
+			button.SetNeedsDisplay()
+			display.Update()
+		}
+
+		buttonArea := LayoutRect{background.Rectangle.Inset(10)}
 
 		statusArea := &OpaqueLayer{}
 		transparentWhite := color.RGBA{R: 0x99, G: 0x99, B: 0x99, A: 0x99}
-		statusArea.Init(buttonArea.SliceV(-40, 10), transparentWhite)
+		statusArea.Init(buttonArea.Slice(40, 10, fromBottom).Rectangle, transparentWhite)
 		statusArea.radius = 5
 		background.AddChild(statusArea)
 
-		icon, _ := Resources.ReadPNG("note.png")
-		for idx, rect := range buttonArea.GridVCount(3, 10) {
-			for idx2, rect := range rect.GridHCount(2, 10) {
-				button := NewButton(rect)
-				button.Label = fmt.Sprintf("Button %d", 2*idx+idx2)
-				button.Icon = icon
-				button.OnTap = func() {
-					fmt.Printf("Tapped %s\n", button.Label)
+		icon, _ := Resources.ReadPNG("chevron-down.png")
+		for idx, rect := range buttonArea.Divide(3, 10, fromTop) {
+			for idx2, rect := range rect.Divide(2, 10, fromLeft) {
+				num := 2*idx + idx2
+				button := &Button{}
+				button.Init(rect.Rectangle)
+				if num == 0 {
+					button.Label = "Wallpaper"
+					button.Icon, _ = Resources.ReadPNG("hex-cluster.png")
+					var once sync.Once
+					button.OnTap = func() {
+						go once.Do(func() {
+							downloadBackground(button)
+						})
+					}
+				} else {
+					button.Label = fmt.Sprintf("Button %d", 2*idx+idx2)
+					button.Icon = icon
+					button.OnTap = func() {
+						fmt.Printf("Tapped %s\n", button.Label)
+					}
 				}
 				background.AddChild(button)
 			}

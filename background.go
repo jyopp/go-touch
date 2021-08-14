@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image"
 	"image/color"
 	"image/draw"
 )
@@ -11,13 +12,13 @@ type Background struct {
 	Brightness int
 }
 
-func (background *Background) Init(frame Rect) *Background {
+func (background *Background) Init(frame image.Rectangle) *Background {
 	background.BasicLayer.Init(frame, background)
 	return background
 }
 
 func (background *Background) Draw(layer Layer, ctx DrawingContext) {
-	rect := background.Rectangle()
+	rect := background.Rectangle
 	bright := background.Brightness
 
 	var c color.RGBA
@@ -36,8 +37,8 @@ func (background *Background) Draw(layer Layer, ctx DrawingContext) {
 			pix := row[i : i+4 : i+4]
 			pix[0], pix[1], pix[2], pix[3] = c.R, c.G, c.B, c.A
 		}
-		ctx.DrawRow(row, background.x, background.y+y, draw.Src)
+		ctx.DrawRow(row, rect.Min.X, y, draw.Src)
 	}
 	// Mask corners out with opaque black
-	CornerMask{ctx.Bounds(), background.radius}.EraseCorners(ctx)
+	CornerMask{rect, background.radius}.EraseCorners(ctx)
 }

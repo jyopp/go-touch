@@ -58,8 +58,9 @@ func (cm CornerMask) EraseCorners(img draw.Image) {
 	}
 }
 
-func (cm CornerMask) RelativeRowInset(y int) int {
+func (cm CornerMask) RowInset(y int) int {
 	r := cm.Radius
+	y -= cm.Min.Y
 	if y >= r {
 		y = cm.Dy() - y - 1
 	}

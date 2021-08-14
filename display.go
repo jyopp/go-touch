@@ -9,12 +9,12 @@ import (
 // Eventually, perhaps Display should fully conform to LayerDrawing...
 
 type Display struct {
-	Width, Height int
-	FrameBuffer   []byte
-	DeviceFile    *os.File
-	Layers        []Layer
-	DrawBuffer    DisplayBuffer
-	DirtyRect     image.Rectangle
+	Size        image.Point
+	FrameBuffer []byte
+	DeviceFile  *os.File
+	Layers      []Layer
+	DrawBuffer  DisplayBuffer
+	DirtyRect   image.Rectangle
 }
 
 func NewDisplay(w, h int, framebuffer *os.File) *Display {
@@ -24,8 +24,7 @@ func NewDisplay(w, h int, framebuffer *os.File) *Display {
 		panic("Can't get framebuffer")
 	}
 	display := &Display{
-		Width:       w,
-		Height:      h,
+		Size:        image.Point{w, h},
 		FrameBuffer: data,
 		DeviceFile:  framebuffer,
 		Layers:      []Layer{},
@@ -35,8 +34,8 @@ func NewDisplay(w, h int, framebuffer *os.File) *Display {
 	return display
 }
 
-func (d *Display) Bounds() Rect {
-	return Rect{x: 0, y: 0, w: d.Width, h: d.Height, radius: 8}
+func (d *Display) Bounds() image.Rectangle {
+	return image.Rectangle{Max: d.Size}
 }
 
 // Add a layer to the display
@@ -67,7 +66,7 @@ func (d *Display) Clear() {
 // superset of all drawn rects is flushed to the display.
 func (d *Display) Update() {
 	for _, layer := range d.Layers {
-		if clip := d.DrawBuffer.Clip(layer.Frame().Rectangle()); clip != nil {
+		if clip := d.DrawBuffer.Clip(layer.Frame()); clip != nil {
 			layer.DisplayIfNeeded(clip)
 		}
 	}
@@ -87,14 +86,14 @@ func (d *Display) Redraw() {
 	buf.Clear()
 	d.DirtyRect = buf.Rect
 	for _, layer := range d.Layers {
-		if clip := buf.Clip(layer.Frame().Rectangle()); clip != nil {
+		if clip := buf.Clip(layer.Frame()); clip != nil {
 			layer.Display(clip)
 		}
 	}
 	d.Flush()
 }
 
-// Flush downsamples pixels in DirtyRect directly to the Framebuffer.
+// Flush wirtes downsampled pixels in DirtyRect to the Framebuffer.
 // If DirtyRect is empty, this function returns immediately.
 // Upon return, dirtyRect is always empty.
 func (d *Display) Flush() {
@@ -107,16 +106,16 @@ func (d *Display) Flush() {
 	min, max := d.DirtyRect.Min, d.DirtyRect.Max
 	buf := d.DrawBuffer
 
-	fbSpan := 2 * d.Width
+	fbStride := d.DrawBuffer.Stride / 2
 
 	rowL, rowR := 4*min.X, 4*max.X
-	if rowR > 4*d.Width {
-		rowR = 4 * d.Width
+	if rowR > d.DrawBuffer.Stride {
+		rowR = d.DrawBuffer.Stride
 	}
 
 	for y := min.Y; y < max.Y; y++ {
-		left := y * fbSpan
-		fbRow := d.FrameBuffer[left : left+fbSpan : left+fbSpan]
+		left := y * fbStride
+		fbRow := d.FrameBuffer[left : left+fbStride : left+fbStride]
 
 		row := buf.GetRow(y)
 		for i := rowL; i < rowR; i += 4 {

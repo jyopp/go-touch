@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image"
 	"image/color"
 	"image/draw"
 )
@@ -10,8 +11,8 @@ type Layer interface {
 	AddChild(Layer)
 	InsertChild(Layer, int)
 
-	Frame() Rect
-	SetFrame(frame Rect)
+	Frame() image.Rectangle
+	SetFrame(frame image.Rectangle)
 
 	NeedsDisplay() bool
 	SetNeedsDisplay()
@@ -42,25 +43,29 @@ type LayerDrawer interface {
 }
 
 type BasicLayer struct {
-	Rect
+	image.Rectangle
 	children     []Layer
 	needsDisplay bool
 	identity     interface{}
+	radius       int
 }
 
-func (layer *BasicLayer) Init(frame Rect, identity interface{}) {
-	layer.Rect = frame
+func (layer *BasicLayer) Init(frame image.Rectangle, identity interface{}) {
+	layer.Rectangle = frame
 	layer.identity = identity
 	layer.needsDisplay = true
 }
 
-func (layer *BasicLayer) Frame() Rect {
-	return layer.Rect
+func (layer *BasicLayer) Frame() image.Rectangle {
+	return layer.Rectangle
 }
 
-func (layer *BasicLayer) SetFrame(frame Rect) {
-	layer.needsDisplay = layer.needsDisplay || layer.Rect != frame
-	layer.Rect = frame
+func (layer *BasicLayer) SetFrame(frame image.Rectangle) {
+	if layer.Eq(frame) {
+		return
+	}
+	layer.needsDisplay = true
+	layer.Rectangle = frame
 }
 
 func (layer *BasicLayer) AddChild(child Layer) {
@@ -86,7 +91,7 @@ func (layer *BasicLayer) HitTest(event TouchEvent) TouchTarget {
 			return target
 		}
 	}
-	if event.Pressed && layer.Contains(event.X, event.Y) {
+	if event.Pressed && event.In(layer.Rectangle) {
 		if interactor, ok := layer.identity.(TouchTarget); ok {
 			return interactor
 		}
@@ -117,7 +122,7 @@ func (layer *BasicLayer) DisplayIfNeeded(ctx DrawingContext) {
 		}
 	} else {
 		for _, child := range layer.children {
-			if clip := ctx.Clip(child.Frame().Rectangle()); clip != nil {
+			if clip := ctx.Clip(child.Frame()); clip != nil {
 				child.DisplayIfNeeded(clip)
 			}
 		}
@@ -128,7 +133,7 @@ func (layer *BasicLayer) DisplayIfNeeded(ctx DrawingContext) {
 func (layer *BasicLayer) Display(ctx DrawingContext) {
 	// fmt.Printf("Drawing %T into %T %v\n", layer.identity, ctx, ctx.Bounds())
 
-	layerRect := layer.Rectangle()
+	layerRect := layer.Rectangle
 	// Eventually we'll need to convert into the destination coordinate space
 	// fmt.Printf("Drawing %T %v into %T %v\n", layer, layer, ctx, ctx)
 	if drawer, ok := layer.identity.(LayerDrawer); ok {
@@ -137,14 +142,14 @@ func (layer *BasicLayer) Display(ctx DrawingContext) {
 		// TODO: Throw an error? Refuse to draw?
 		// Draw lime green for debugging
 		limeGreen := color.RGBA{R: 0, G: 0xFF, B: 0, A: 0xFF}
-		ctx.Fill(layer.Rect, limeGreen, draw.Src)
+		ctx.Fill(layerRect, limeGreen, layer.radius, draw.Src)
 	}
 
 	// TODO: Let delegates decide what to mark dirty
 	ctx.SetDirty(layerRect)
 
 	for _, child := range layer.children {
-		if clip := ctx.Clip(child.Frame().Rectangle()); clip != nil {
+		if clip := ctx.Clip(child.Frame()); clip != nil {
 			if child.NeedsDisplay() || clip.Bounds().Overlaps(layerRect) {
 				child.Display(clip)
 			}

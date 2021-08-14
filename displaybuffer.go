@@ -14,9 +14,9 @@ type DisplayBuffer struct {
 	Display *Display
 }
 
-func NewDisplayBuffer(display *Display, frame Rect) DisplayBuffer {
+func NewDisplayBuffer(display *Display, frame image.Rectangle) DisplayBuffer {
 	return DisplayBuffer{
-		RGBA:    image.NewRGBA(frame.Rectangle()),
+		RGBA:    image.NewRGBA(frame),
 		Display: display,
 	}
 }
@@ -34,12 +34,12 @@ func (b *DisplayBuffer) Clear() {
 }
 
 // Set the buffer's frame. Returns true if the image data was reinitialized.
-func (b *DisplayBuffer) SetFrame(frame Rect) bool {
-	if frame.w == b.Rect.Dx() && frame.h == b.Rect.Dy() {
-		b.Rect = frame.Rectangle()
+func (b *DisplayBuffer) SetFrame(frame image.Rectangle) bool {
+	if frame.Size().Eq(b.Rect.Size()) {
+		b.Rect = frame
 		return false
 	} else {
-		b.RGBA = image.NewRGBA(frame.Rectangle())
+		b.RGBA = image.NewRGBA(frame)
 		return true
 	}
 }
@@ -123,9 +123,9 @@ func (b DisplayBuffer) Clip(rect image.Rectangle) DrawingContext {
 	}
 }
 
-func (b DisplayBuffer) Fill(rect Rect, c color.Color, op draw.Op) {
+func (b DisplayBuffer) Fill(rect image.Rectangle, c color.Color, radius int, op draw.Op) {
 	rgba := color.RGBAModel.Convert(c).(color.RGBA)
-	rowLen := rect.w * 4
+	rowLen := rect.Dx() * 4
 	row := make([]byte, rowLen)
 	for i := copy(row, []byte{rgba.R, rgba.G, rgba.B, rgba.A}); i < rowLen; {
 		copy(row[i:], row[:i])
@@ -137,18 +137,18 @@ func (b DisplayBuffer) Fill(rect Rect, c color.Color, op draw.Op) {
 	}
 
 	// Copy the pixel row into all relevant output lines
-	if rect.radius > 0 {
-		mask := CornerMask{rect.Rectangle(), rect.radius}
+	if radius > 0 {
+		mask := CornerMask{rect, radius}
 		// Clip the corners when drawing into an unbuffered context
-		for y := 0; y < rect.h; y++ {
-			i := mask.RelativeRowInset(y)
-			b.DrawRow(row[4*i:rowLen-4*i], rect.x+i, rect.y+y, op)
+		for y := rect.Min.Y; y < rect.Max.Y; y++ {
+			i := mask.RowInset(y)
+			b.DrawRow(row[4*i:rowLen-4*i], rect.Min.X+i, y, op)
 		}
 	} else {
-		for y := 0; y < rect.h; y++ {
-			b.DrawRow(row, rect.x, rect.y+y, op)
+		for y := rect.Min.Y; y < rect.Max.Y; y++ {
+			b.DrawRow(row, rect.Min.X, y, op)
 		}
 	}
 
-	b.SetDirty(rect.Rectangle())
+	b.SetDirty(rect)
 }
