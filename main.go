@@ -21,8 +21,8 @@ func main() {
 
 		// TODO: This needs to be an affine transform
 		calibration := TouchscreenCalibration{
-			Left: 3750, Right: 235,
-			Top: 80, Bottom: 3800,
+			Left: 235, Right: 3750,
+			Top: 3800, Bottom: 80,
 			Weak: 180, Strong: 80,
 		}
 		calibration.Prepare(display)
