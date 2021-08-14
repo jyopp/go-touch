@@ -39,7 +39,7 @@ type Button struct {
 	Disabled    bool
 }
 
-func (b *Button) Init(frame image.Rectangle) *Button {
+func (b *Button) Init(frame image.Rectangle) {
 	b.SetFrame(frame)
 	b.Background = color.Transparent
 	b.Radius = 5
@@ -51,7 +51,6 @@ func (b *Button) Init(frame image.Rectangle) *Button {
 	b.context.SetDPI(buttonFaceOpts.DPI)
 
 	b.Delegate = b
-	return b
 }
 
 func (b *Button) SetHighlighted(highlighted bool) {

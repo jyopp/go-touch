@@ -13,12 +13,11 @@ type ImageLayer struct {
 	Centered   bool
 }
 
-func (i *ImageLayer) Init(frame image.Rectangle, image image.Image) *ImageLayer {
-	i.BasicLayer.SetFrame(frame)
+func (i *ImageLayer) Init(frame image.Rectangle, image image.Image) {
+	i.SetFrame(frame)
 	i.Image = image
 	i.Centered = true
 	i.Delegate = i
-	return i
 }
 
 func (i *ImageLayer) Draw(layer Layer, ctx DrawingContext) {
