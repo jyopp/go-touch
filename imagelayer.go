@@ -2,15 +2,13 @@ package main
 
 import (
 	"image"
-	"image/color"
 	"image/draw"
 )
 
 type ImageLayer struct {
 	BasicLayer
-	Image      image.Image
-	Background color.Color
-	Centered   bool
+	Image    image.Image
+	Centered bool
 }
 
 func (i *ImageLayer) Init(frame image.Rectangle, image image.Image) {

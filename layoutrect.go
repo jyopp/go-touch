@@ -61,3 +61,25 @@ func (l *LayoutRect) Divide(count, pad int, dir LayoutDirection) []LayoutRect {
 	size = (size+pad)/count - pad
 	return l.Repeat(size, pad, dir)
 }
+
+func (l LayoutRect) Centered(size image.Point) image.Rectangle {
+	return image.Rectangle{
+		Max: size,
+	}.Add(l.Min.Add(l.Max).Sub(size).Div(2))
+}
+
+func (l LayoutRect) LeftCentered(size image.Point) image.Rectangle {
+	rect := l.Centered(image.Point{X: l.Dx(), Y: size.Y})
+	rect.Max.X = rect.Min.X + size.X
+	return rect
+}
+
+func (l LayoutRect) RightCentered(size image.Point) image.Rectangle {
+	rect := l.Centered(image.Point{X: l.Dx(), Y: size.Y})
+	rect.Min.X = rect.Max.X - size.X
+	return rect
+}
+
+func (l LayoutRect) TopLeft(size image.Point) image.Rectangle {
+	return image.Rectangle{Max: size}.Add(l.Min)
+}

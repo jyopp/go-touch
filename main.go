@@ -66,6 +66,12 @@ func main() {
 		statusArea.Radius = 5
 		background.AddChild(statusArea)
 
+		statusText := &TextLayer{}
+		statusText.Init(statusArea.Rectangle, systemBoldFont, 11.0)
+		statusText.Text = "Status Text Test"
+		statusText.Padding = 5
+		statusArea.AddChild(statusText)
+
 		icon, _ := Resources.ReadPNG("chevron-down.png")
 		for idx, rect := range buttonArea.Divide(3, 10, fromTop) {
 			for idx2, rect := range rect.Divide(2, 10, fromLeft) {

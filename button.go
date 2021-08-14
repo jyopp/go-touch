@@ -1,41 +1,18 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
-
-	"github.com/golang/freetype"
-	"github.com/golang/freetype/truetype"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/gomedium"
-	"golang.org/x/image/math/fixed"
 )
-
-var buttonFont *truetype.Font
-var buttonFace font.Face
-var buttonFaceOpts truetype.Options
-
-func init() {
-	var err error
-	buttonFaceOpts = truetype.Options{
-		Size: 14.0,
-		DPI:  96.0,
-	}
-	if buttonFont, err = truetype.Parse(gomedium.TTF); err != nil {
-		panic(err)
-	}
-	buttonFace = truetype.NewFace(buttonFont, &buttonFaceOpts)
-}
 
 type Button struct {
 	BasicLayer
 	Highlighted bool
 	OnTap       func()
 	Label       string
-	context     *freetype.Context
 	Icon        image.Image
+	labelText   RenderedText
 	Disabled    bool
 }
 
@@ -43,14 +20,12 @@ func (b *Button) Init(frame image.Rectangle) {
 	b.SetFrame(frame)
 	b.Background = color.Transparent
 	b.Radius = 5
-
-	b.Label = "Button"
-	b.context = freetype.NewContext()
-	b.context.SetFont(buttonFont)
-	b.context.SetFontSize(buttonFaceOpts.Size)
-	b.context.SetDPI(buttonFaceOpts.DPI)
-
+	b.SetFont(systemFont, 15)
 	b.Delegate = b
+}
+
+func (b *Button) SetFont(name string, size float64) {
+	b.labelText.SetFont(name, size)
 }
 
 func (b *Button) SetHighlighted(highlighted bool) {
@@ -79,23 +54,25 @@ func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 		textColor = color.Black
 	}
 	ctx.Fill(b.Rectangle, bgColor, b.Radius, draw.Over)
-	b.context.SetSrc(image.NewUniform(textColor))
+
+	layout := LayoutRect{b.Rectangle.Inset(8)}
 
 	if b.Icon != nil {
-		iconX := (b.Dx() - b.Icon.Bounds().Dx()) / 2
-		offset := image.Point{-iconX, -10}
-		draw.Draw(ctx.Image(), b.Rectangle, b.Icon, offset, draw.Over)
+		iconSize := b.Icon.Bounds().Size()
+		iconBounds := layout.Slice(iconSize.Y, 5, fromTop).Centered(iconSize)
+		draw.Draw(ctx.Image(), iconBounds, b.Icon, image.Point{}, draw.Over)
 	}
 
-	textContext := b.context
-	textContext.SetDst(ctx.Image())
-	textContext.SetClip(b.Rectangle)
-
-	textWidth := font.MeasureString(buttonFace, b.Label).Round()
-	textX := (b.Min.X + b.Max.X - textWidth) / 2
-	if _, err := textContext.DrawString(b.Label, fixed.P(textX, b.Max.Y-13)); err != nil {
-		fmt.Printf("%v drawing string: %s\n", err, b.Label)
-	}
+	// Render or re-render the button's label as needed
+	b.labelText.Prepare(b.Label, layout.Size())
+	// Now draw the textColor using the cached alpha-mask
+	textAlpha := b.labelText.Alpha
+	// Center the text in the remaining space
+	textBounds := layout.Centered(textAlpha.Rect.Size())
+	textSrc := image.NewUniform(textColor)
+	// Debug drawing for text bounds
+	// ctx.Fill(textBounds, color.Gray{0xD0}, 0, draw.Src)
+	draw.DrawMask(ctx.Image(), textBounds, textSrc, image.Point{}, textAlpha, image.Point{}, draw.Over)
 }
 
 func (b *Button) StartTouch(event TouchEvent) {
