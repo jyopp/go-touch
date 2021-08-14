@@ -11,25 +11,34 @@ import (
 // DisplayBuffer is required for compositing with transparency.
 type DisplayBuffer struct {
 	*image.RGBA
-	Display *Display
+	Display   *Display
+	isClipped bool
 }
 
-func NewDisplayBuffer(display *Display, frame image.Rectangle) DisplayBuffer {
-	return DisplayBuffer{
+func NewDisplayBuffer(display *Display, frame image.Rectangle) *DisplayBuffer {
+	return &DisplayBuffer{
 		RGBA:    image.NewRGBA(frame),
 		Display: display,
 	}
 }
 
-// Clear sets all pixels to transparent black. Quickly.
-func (b *DisplayBuffer) Clear() {
+func (b *DisplayBuffer) Image() *image.RGBA {
+	return b.RGBA
+}
+
+func (b *DisplayBuffer) Bounds() image.Rectangle {
+	return b.Rect
+}
+
+// Reset resets every pixel in the buffer as efficiently as possible.
+func (b *DisplayBuffer) Reset(c color.Color) {
 	// TODO: support clipped contexts with a separate codepath
 	px := b.Pix
-	l := copy(px, []byte{0x0, 0x0, 0x0, 0x0})
+	rgba := color.RGBAModel.Convert(c).(color.RGBA)
+	l := copy(px, []byte{rgba.R, rgba.G, rgba.B, rgba.A})
 	// Copy l*2^n zeros on each pass
-	for l < len(px) {
+	for ; l < len(px); l *= 2 {
 		copy(px[l:], px[:l])
-		l *= 2
 	}
 }
 
@@ -44,14 +53,14 @@ func (b *DisplayBuffer) SetFrame(frame image.Rectangle) bool {
 	}
 }
 
-func (b DisplayBuffer) GetRow(y int) []byte {
+func (b *DisplayBuffer) GetRow(y int) []byte {
 	// Calculate our own pixel offset so we can truncate the row
 	left := b.PixOffset(b.Rect.Min.X, y)
 	right := b.PixOffset(b.Rect.Max.X, y)
 	return b.Pix[left:right:right]
 }
 
-func (b DisplayBuffer) DrawRow(row []byte, x, y int, op draw.Op) {
+func (b *DisplayBuffer) DrawRow(row []byte, x, y int, op draw.Op) {
 	// Bounds-check and adjust before copying pixel data
 	min, max := b.Rect.Min, b.Rect.Max
 	if y < min.Y {
@@ -103,13 +112,13 @@ func (b DisplayBuffer) DrawRow(row []byte, x, y int, op draw.Op) {
 
 // Marks a rect as needing to be drawn to the display.
 // If the buffer is not associated with a display, does nothing.
-func (b DisplayBuffer) SetDirty(rect image.Rectangle) {
+func (b *DisplayBuffer) SetDirty(rect image.Rectangle) {
 	if b.Display != nil {
 		b.Display.SetDirty(rect.Intersect(b.Rect))
 	}
 }
 
-func (b DisplayBuffer) Clip(rect image.Rectangle) DrawingContext {
+func (b *DisplayBuffer) Clip(rect image.Rectangle) DrawingContext {
 	rect = rect.Intersect(b.Rect)
 	if rect.Empty() {
 		return nil
@@ -117,13 +126,22 @@ func (b DisplayBuffer) Clip(rect image.Rectangle) DrawingContext {
 
 	// TODO: Information about rects with negative origin
 	// values could be lost here, and may need special treatment.
-	return DisplayBuffer{
-		RGBA:    b.SubImage(rect).(*image.RGBA),
-		Display: b.Display,
+	return &DisplayBuffer{
+		RGBA:      b.SubImage(rect).(*image.RGBA),
+		Display:   b.Display,
+		isClipped: true,
 	}
 }
 
-func (b DisplayBuffer) Fill(rect image.Rectangle, c color.Color, radius int, op draw.Op) {
+func (b *DisplayBuffer) Fill(rect image.Rectangle, c color.Color, radius int, op draw.Op) {
+	mask := CornerMask{rect, radius}
+	if !b.isClipped && b.Rect.In(rect) {
+		// Fastest path;
+		b.Reset(c)
+		mask.EraseCorners(b)
+		return
+	}
+
 	rgba := color.RGBAModel.Convert(c).(color.RGBA)
 	rowLen := rect.Dx() * 4
 	row := make([]byte, rowLen)
@@ -138,7 +156,6 @@ func (b DisplayBuffer) Fill(rect image.Rectangle, c color.Color, radius int, op 
 
 	// Copy the pixel row into all relevant output lines
 	if radius > 0 {
-		mask := CornerMask{rect, radius}
 		// Clip the corners when drawing into an unbuffered context
 		for y := rect.Min.Y; y < rect.Max.Y; y++ {
 			i := mask.RowInset(y)

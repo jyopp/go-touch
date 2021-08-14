@@ -23,7 +23,7 @@ func (i *ImageLayer) Init(frame image.Rectangle, image image.Image) *ImageLayer 
 
 func (i *ImageLayer) Draw(layer Layer, ctx DrawingContext) {
 	if _, _, _, a := i.Background.RGBA(); a > 0x10 {
-		ctx.Fill(i.Frame(), i.Background, i.radius, draw.Over)
+		ctx.Fill(i.Frame(), i.Background, i.Radius, draw.Over)
 	}
 
 	if i.Image != nil {
@@ -32,6 +32,6 @@ func (i *ImageLayer) Draw(layer Layer, ctx DrawingContext) {
 			negativeOffset.X = (i.Image.Bounds().Dx() - i.Dx()) / 2
 			negativeOffset.Y = (i.Image.Bounds().Dy() - i.Dy()) / 2
 		}
-		draw.Draw(ctx, ctx.Bounds(), i.Image, negativeOffset, draw.Over)
+		draw.Draw(ctx.Image(), i.Rectangle, i.Image, negativeOffset, draw.Src)
 	}
 }

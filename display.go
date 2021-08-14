@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"image"
+	"image/color"
 	"os"
 	"syscall"
+	"time"
 )
 
 // Eventually, perhaps Display should fully conform to LayerDrawing...
@@ -13,7 +16,7 @@ type Display struct {
 	FrameBuffer []byte
 	DeviceFile  *os.File
 	Layers      []Layer
-	DrawBuffer  DisplayBuffer
+	DrawBuffer  *DisplayBuffer
 	DirtyRect   image.Rectangle
 }
 
@@ -65,12 +68,24 @@ func (d *Display) Clear() {
 // that need to be displayed. If any layers are displayed, a
 // superset of all drawn rects is flushed to the display.
 func (d *Display) Update() {
+	start := time.Now()
 	for _, layer := range d.Layers {
 		if clip := d.DrawBuffer.Clip(layer.Frame()); clip != nil {
 			layer.DisplayIfNeeded(clip)
 		}
 	}
+	drawn := time.Now()
+	drewRect := d.DirtyRect
 	d.Flush()
+
+	if time.Since(start).Milliseconds() > 0 {
+		fmt.Printf(
+			"Updated: Draw %dms / Flush %dms in %v\n",
+			drawn.Sub(start).Milliseconds(),
+			time.Since(drawn).Milliseconds(),
+			drewRect,
+		)
+	}
 }
 
 // SetDirty expands the dirty rect to include all pixels in rect.
@@ -83,7 +98,7 @@ func (d *Display) SetDirty(rect image.Rectangle) {
 // The entire DrawBuffer is flushed to the display before returning.
 func (d *Display) Redraw() {
 	buf := d.DrawBuffer
-	buf.Clear()
+	buf.Reset(color.Transparent)
 	d.DirtyRect = buf.Rect
 	for _, layer := range d.Layers {
 		if clip := buf.Clip(layer.Frame()); clip != nil {

@@ -30,7 +30,7 @@ func init() {
 }
 
 type Button struct {
-	BufferedLayer
+	BasicLayer
 	Highlighted bool
 	OnTap       func()
 	Label       string
@@ -47,8 +47,8 @@ func (b *Button) Init(frame image.Rectangle) *Button {
 	b.context.SetFontSize(buttonFaceOpts.Size)
 	b.context.SetDPI(buttonFaceOpts.DPI)
 
-	b.BufferedLayer.Init(frame, b)
-	b.radius = 5
+	b.BasicLayer.Init(frame, b)
+	b.Radius = 5
 
 	return b
 }
@@ -64,6 +64,7 @@ func (b *Button) SetHighlighted(highlighted bool) {
 	b.needsDisplay = true
 }
 
+// Need some sort of prepare phase for drawing
 func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 
 	var bgColor, textColor color.Color
@@ -77,16 +78,17 @@ func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 		bgColor = color.RGBA{R: 0xFF, G: 0xFE, B: 0xFC, A: 0xFF}
 		textColor = color.Black
 	}
-	ctx.Fill(b.Rectangle, bgColor, b.radius, draw.Over)
+	ctx.Fill(b.Rectangle, bgColor, b.Radius, draw.Over)
 	b.context.SetSrc(image.NewUniform(textColor))
 
 	if b.Icon != nil {
 		iconX := (b.Dx() - b.Icon.Bounds().Dx()) / 2
-		draw.Draw(ctx, b.Rectangle, b.Icon, image.Pt(-iconX, -10), draw.Over)
+		offset := image.Point{-iconX, -10}
+		draw.Draw(ctx.Image(), b.Rectangle, b.Icon, offset, draw.Over)
 	}
 
 	textContext := b.context
-	textContext.SetDst(ctx)
+	textContext.SetDst(ctx.Image())
 	textContext.SetClip(b.Rectangle)
 
 	textWidth := font.MeasureString(buttonFace, b.Label).Round()

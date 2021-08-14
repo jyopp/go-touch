@@ -44,14 +44,17 @@ type LayerDrawer interface {
 
 type BasicLayer struct {
 	image.Rectangle
+	Radius     int
+	Background color.Color
+
 	children     []Layer
 	needsDisplay bool
 	identity     interface{}
-	radius       int
 }
 
 func (layer *BasicLayer) Init(frame image.Rectangle, identity interface{}) {
 	layer.Rectangle = frame
+	layer.Background = color.Transparent
 	layer.identity = identity
 	layer.needsDisplay = true
 }
@@ -139,10 +142,7 @@ func (layer *BasicLayer) Display(ctx DrawingContext) {
 	if drawer, ok := layer.identity.(LayerDrawer); ok {
 		drawer.Draw(layer, ctx)
 	} else {
-		// TODO: Throw an error? Refuse to draw?
-		// Draw lime green for debugging
-		limeGreen := color.RGBA{R: 0, G: 0xFF, B: 0, A: 0xFF}
-		ctx.Fill(layerRect, limeGreen, layer.radius, draw.Src)
+		ctx.Fill(layerRect, layer.Background, layer.Radius, draw.Src)
 	}
 
 	// TODO: Let delegates decide what to mark dirty

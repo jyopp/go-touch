@@ -7,7 +7,7 @@ import (
 
 type BufferedLayer struct {
 	BasicLayer
-	buffer      DisplayBuffer
+	buffer      *DisplayBuffer
 	needsRedraw bool
 }
 
@@ -28,11 +28,10 @@ func (layer *BufferedLayer) SetFrame(frame image.Rectangle) {
 func (layer *BufferedLayer) Display(ctx DrawingContext) {
 	buffer := layer.buffer
 	if layer.needsRedraw {
-		buffer.Clear()
 		layer.BasicLayer.Display(buffer)
 	}
 
 	// fmt.Printf("Compositing %T %v into %T %v\n", layer.identity, buffer.Rect, ctx, ctx.Bounds())
-	draw.Draw(ctx, buffer.Rect, buffer, buffer.Rect.Min, draw.Over)
+	draw.Draw(ctx.Image(), buffer.Rect, buffer, buffer.Rect.Min, draw.Over)
 	ctx.SetDirty(buffer.Rect)
 }

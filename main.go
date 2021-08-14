@@ -29,7 +29,7 @@ func main() {
 
 		background := &Background{}
 		background.Init(display.Bounds())
-		background.radius = 8
+		background.Radius = 8
 		background.Brightness = 0xEE
 
 		downloadBackground := func(button *Button) {
@@ -58,11 +58,12 @@ func main() {
 		}
 
 		buttonArea := LayoutRect{background.Rectangle.Inset(10)}
-
-		statusArea := &OpaqueLayer{}
 		transparentWhite := color.RGBA{R: 0x99, G: 0x99, B: 0x99, A: 0x99}
-		statusArea.Init(buttonArea.Slice(40, 10, fromBottom).Rectangle, transparentWhite)
-		statusArea.radius = 5
+
+		statusArea := &BasicLayer{}
+		statusArea.Init(buttonArea.Slice(40, 10, fromBottom).Rectangle, nil)
+		statusArea.Background = transparentWhite
+		statusArea.Radius = 5
 		background.AddChild(statusArea)
 
 		icon, _ := Resources.ReadPNG("chevron-down.png")

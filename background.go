@@ -40,5 +40,5 @@ func (background *Background) Draw(layer Layer, ctx DrawingContext) {
 		ctx.DrawRow(row, rect.Min.X, y, draw.Src)
 	}
 	// Mask corners out with opaque black
-	CornerMask{rect, background.radius}.EraseCorners(ctx)
+	CornerMask{rect, background.Radius}.EraseCorners(ctx.Image())
 }

@@ -9,7 +9,9 @@ import (
 // DrawingContext is used for both buffered and unbuffered drawing.
 // See LayerImageBuffer and DisplayRect.
 type DrawingContext interface {
-	draw.Image
+	Image() *image.RGBA
+	Bounds() image.Rectangle
+
 	// GetRow returns a slice of bytes with pixel data for one line of the raster.
 	GetRow(y int) []byte
 	// PutRow writes a row of pixel data into the receiver at (x, y)
