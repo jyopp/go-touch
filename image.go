@@ -14,10 +14,10 @@ type ImageLayer struct {
 }
 
 func (i *ImageLayer) Init(frame image.Rectangle, image image.Image) *ImageLayer {
+	i.BasicLayer.SetFrame(frame)
 	i.Image = image
 	i.Centered = true
-	i.BasicLayer.Init(frame, i)
-	i.Background = color.Transparent
+	i.Delegate = i
 	return i
 }
 

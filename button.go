@@ -40,6 +40,9 @@ type Button struct {
 }
 
 func (b *Button) Init(frame image.Rectangle) *Button {
+	b.SetFrame(frame)
+	b.Background = color.Transparent
+	b.Radius = 5
 
 	b.Label = "Button"
 	b.context = freetype.NewContext()
@@ -47,9 +50,7 @@ func (b *Button) Init(frame image.Rectangle) *Button {
 	b.context.SetFontSize(buttonFaceOpts.Size)
 	b.context.SetDPI(buttonFaceOpts.DPI)
 
-	b.BasicLayer.Init(frame, b)
-	b.Radius = 5
-
+	b.Delegate = b
 	return b
 }
 

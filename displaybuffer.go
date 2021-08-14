@@ -49,6 +49,7 @@ func (b *DisplayBuffer) SetFrame(frame image.Rectangle) bool {
 		return false
 	} else {
 		b.RGBA = image.NewRGBA(frame)
+		b.isClipped = false
 		return true
 	}
 }

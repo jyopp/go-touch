@@ -19,7 +19,7 @@ type Layer interface {
 	DisplayIfNeeded(ctx DrawingContext)
 	Display(ctx DrawingContext)
 
-	HitTest(TouchEvent) TouchTarget
+	HitTest(TouchEvent) LayerTouchDelegate
 
 	// TODO: Add IsOpaque()
 	// In a pre-rendering phase, collect the UNION of all child
@@ -32,13 +32,13 @@ type Layer interface {
 	// out.
 }
 
-type TouchTarget interface {
+type LayerTouchDelegate interface {
 	StartTouch(TouchEvent)
 	UpdateTouch(TouchEvent)
 	EndTouch(TouchEvent)
 }
 
-type LayerDrawer interface {
+type LayerDrawDelegate interface {
 	Draw(layer Layer, ctx DrawingContext)
 }
 
@@ -46,17 +46,10 @@ type BasicLayer struct {
 	image.Rectangle
 	Radius     int
 	Background color.Color
+	Delegate   interface{}
 
 	children     []Layer
 	needsDisplay bool
-	identity     interface{}
-}
-
-func (layer *BasicLayer) Init(frame image.Rectangle, identity interface{}) {
-	layer.Rectangle = frame
-	layer.Background = color.Transparent
-	layer.identity = identity
-	layer.needsDisplay = true
 }
 
 func (layer *BasicLayer) Frame() image.Rectangle {
@@ -88,14 +81,14 @@ func (layer *BasicLayer) InsertChild(child Layer, index int) {
 	}
 }
 
-func (layer *BasicLayer) HitTest(event TouchEvent) TouchTarget {
+func (layer *BasicLayer) HitTest(event TouchEvent) LayerTouchDelegate {
 	for _, child := range layer.children {
 		if target := child.HitTest(event); target != nil {
 			return target
 		}
 	}
 	if event.Pressed && event.In(layer.Rectangle) {
-		if interactor, ok := layer.identity.(TouchTarget); ok {
+		if interactor, ok := layer.Delegate.(LayerTouchDelegate); ok {
 			return interactor
 		}
 	}
@@ -118,7 +111,7 @@ func (layer *BasicLayer) DisplayIfNeeded(ctx DrawingContext) {
 	if layer.needsDisplay {
 		// When calling interface methods, call from outermost
 		// struct type so that embedding types can override methods.
-		if l, ok := layer.identity.(Layer); ok {
+		if l, ok := layer.Delegate.(Layer); ok {
 			l.Display(ctx)
 		} else {
 			layer.Display(ctx)
@@ -139,7 +132,7 @@ func (layer *BasicLayer) Display(ctx DrawingContext) {
 	layerRect := layer.Rectangle
 	// Eventually we'll need to convert into the destination coordinate space
 	// fmt.Printf("Drawing %T %v into %T %v\n", layer, layer, ctx, ctx)
-	if drawer, ok := layer.identity.(LayerDrawer); ok {
+	if drawer, ok := layer.Delegate.(LayerDrawDelegate); ok {
 		drawer.Draw(layer, ctx)
 	} else {
 		ctx.Fill(layerRect, layer.Background, layer.Radius, draw.Src)

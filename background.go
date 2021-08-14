@@ -12,14 +12,14 @@ type Background struct {
 	Brightness int
 }
 
-func (background *Background) Init(frame image.Rectangle) *Background {
-	background.BasicLayer.Init(frame, background)
-	return background
+func (b *Background) Init(frame image.Rectangle) {
+	b.SetFrame(frame)
+	b.Delegate = b
 }
 
-func (background *Background) Draw(layer Layer, ctx DrawingContext) {
-	rect := background.Rectangle
-	bright := background.Brightness
+func (b *Background) Draw(layer Layer, ctx DrawingContext) {
+	rect := b.Rectangle
+	bright := b.Brightness
 
 	var c color.RGBA
 	c.A = 0xFF
@@ -40,5 +40,5 @@ func (background *Background) Draw(layer Layer, ctx DrawingContext) {
 		ctx.DrawRow(row, rect.Min.X, y, draw.Src)
 	}
 	// Mask corners out with opaque black
-	CornerMask{rect, background.Radius}.EraseCorners(ctx.Image())
+	CornerMask{rect, b.Radius}.EraseCorners(ctx.Image())
 }

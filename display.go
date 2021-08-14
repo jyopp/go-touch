@@ -47,7 +47,7 @@ func (d *Display) AddLayer(layer Layer) {
 }
 
 // Top-level dispatch
-func (d *Display) HitTest(event TouchEvent) TouchTarget {
+func (d *Display) HitTest(event TouchEvent) LayerTouchDelegate {
 	for _, layer := range d.Layers {
 		if target := layer.HitTest(event); target != nil {
 			return target

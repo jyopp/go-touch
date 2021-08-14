@@ -11,16 +11,15 @@ type BufferedLayer struct {
 	needsRedraw bool
 }
 
-// TODO: Return an error?
-func (layer *BufferedLayer) Init(frame image.Rectangle, identity interface{}) {
-	layer.BasicLayer.Init(frame, identity)
-	layer.buffer = NewDisplayBuffer(nil, frame)
-	layer.needsRedraw = true
-}
-
 func (layer *BufferedLayer) SetFrame(frame image.Rectangle) {
+	if layer.Eq(frame) {
+		return
+	}
 	layer.BasicLayer.SetFrame(frame)
-	if layer.buffer.SetFrame(frame) {
+	if layer.buffer == nil {
+		layer.buffer = NewDisplayBuffer(nil, frame)
+		layer.needsRedraw = true
+	} else if layer.buffer.SetFrame(frame) {
 		layer.needsRedraw = true
 	}
 }

@@ -60,17 +60,17 @@ func main() {
 		buttonArea := LayoutRect{background.Rectangle.Inset(10)}
 		transparentWhite := color.RGBA{R: 0x99, G: 0x99, B: 0x99, A: 0x99}
 
-		statusArea := &BasicLayer{}
-		statusArea.Init(buttonArea.Slice(40, 10, fromBottom).Rectangle, nil)
+		var statusArea BasicLayer
+		statusArea.SetFrame(buttonArea.Slice(40, 10, fromBottom).Rectangle)
 		statusArea.Background = transparentWhite
 		statusArea.Radius = 5
-		background.AddChild(statusArea)
+		background.AddChild(&statusArea)
 
 		icon, _ := Resources.ReadPNG("chevron-down.png")
 		for idx, rect := range buttonArea.Divide(3, 10, fromTop) {
 			for idx2, rect := range rect.Divide(2, 10, fromLeft) {
 				num := 2*idx + idx2
-				button := &Button{}
+				var button Button
 				button.Init(rect.Rectangle)
 				if num == 0 {
 					button.Label = "Wallpaper"
@@ -78,7 +78,7 @@ func main() {
 					var once sync.Once
 					button.OnTap = func() {
 						go once.Do(func() {
-							downloadBackground(button)
+							downloadBackground(&button)
 						})
 					}
 				} else {
@@ -88,7 +88,7 @@ func main() {
 						fmt.Printf("Tapped %s\n", button.Label)
 					}
 				}
-				background.AddChild(button)
+				background.AddChild(&button)
 			}
 		}
 
@@ -105,7 +105,7 @@ func main() {
 		// events.dump = true
 		go events.EventLoop()
 
-		var eventTarget TouchTarget
+		var eventTarget LayerTouchDelegate
 
 		for event := range events.TouchEvents {
 			calibration.Adjust(&event)
