@@ -23,7 +23,7 @@ var (
 	// These global values affect how fonts are rendered.
 	// These values should be mutated only before fonts are loaded.
 	fontDPI                  float64 = 96
-	fontSubpixelQuantization         = 4
+	fontSubpixelQuantization         = 2
 )
 
 type fontKey struct {
@@ -102,7 +102,6 @@ func (f *Font) Init(name string, size float64) {
 	opts := truetype.Options{
 		Size:       size,
 		DPI:        fontDPI,
-		Hinting:    font.HintingFull,
 		SubPixelsX: fontSubpixelQuantization,
 		SubPixelsY: fontSubpixelQuantization,
 	}

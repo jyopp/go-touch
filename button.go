@@ -12,7 +12,7 @@ type Button struct {
 	OnTap       func()
 	Label       string
 	Icon        image.Image
-	labelText   RenderedText
+	labelFont   *Font
 	Disabled    bool
 }
 
@@ -25,7 +25,7 @@ func (b *Button) Init(frame image.Rectangle) {
 }
 
 func (b *Button) SetFont(name string, size float64) {
-	b.labelText.SetFont(name, size)
+	b.labelFont = SharedFont(name, size)
 }
 
 func (b *Button) SetHighlighted(highlighted bool) {
@@ -64,11 +64,11 @@ func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 	}
 
 	// Render the label text centered in the remaining area
-	labelSize := b.labelText.Prepare(b.Label, layout.Size())
+	labelSize := b.labelFont.Measure(b.Label, layout.Size())
 	labelRect := layout.Aligned(labelSize, gravityCenter)
 	// Debug drawing for text bounds
 	// ctx.Fill(labelRect, color.Gray{0xD0}, 0, draw.Src)
-	b.labelText.Draw(ctx.Image(), labelRect, textColor)
+	b.labelFont.Draw(ctx.Image(), b.Label, labelRect, textColor)
 }
 
 func (b *Button) StartTouch(event TouchEvent) {
