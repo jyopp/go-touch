@@ -112,20 +112,27 @@ func (d *Display) Redraw() {
 // If DirtyRect is empty, this function returns immediately.
 // Upon return, dirtyRect is always empty.
 func (d *Display) Flush() {
-	if d.DirtyRect.Empty() {
+	dirty := d.DirtyRect
+	if dirty.Empty() {
 		// Nothing to draw
 		return
 	}
 	// println("Flushing Rect", d.DirtyRect.String())
 
-	min, max := d.DirtyRect.Min, d.DirtyRect.Max
 	buf := d.DrawBuffer
 
-	fbStride := d.DrawBuffer.Stride / 2
+	mask := CornerMask{d.Bounds(), 9}
+	// If any of the corners were drawn, mask them out before flushing
+	if v, h := mask.OpaqueRects(); !(dirty.In(v) || dirty.In(h)) {
+		mask.EraseCorners(buf)
+	}
+
+	min, max := dirty.Min, dirty.Max
+	fbStride := buf.Stride / 2
 
 	rowL, rowR := 4*min.X, 4*max.X
-	if rowR > d.DrawBuffer.Stride {
-		rowR = d.DrawBuffer.Stride
+	if rowR > buf.Stride {
+		rowR = buf.Stride
 	}
 
 	for y := min.Y; y < max.Y; y++ {

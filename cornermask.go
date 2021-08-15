@@ -17,7 +17,7 @@ type CornerMask struct {
 // removed if appropriate
 func (cm CornerMask) AlphaImage(opacity byte) *image.Alpha {
 	r := cm.Radius
-	if cm.Rectangle.Empty() || ((r == 0 || r > 8) && opacity == 0xFF) {
+	if cm.Rectangle.Empty() || ((r == 0 || r > maxCornerRadius) && opacity == 0xFF) {
 		return nil
 	}
 
@@ -27,17 +27,29 @@ func (cm CornerMask) AlphaImage(opacity byte) *image.Alpha {
 	return alpha
 }
 
+// OpaqueRects returns a vertical and horizontal covering rectangle
+// that, when combined, cover the opaque (non-corner) parts of the
+// masked rectangle.
+func (cm CornerMask) OpaqueRects() (v, h image.Rectangle) {
+	v, h = cm.Rectangle, cm.Rectangle
+	v.Min.X += cm.Radius
+	v.Max.X -= cm.Radius
+	h.Min.Y += cm.Radius
+	h.Max.Y -= cm.Radius
+	return
+}
+
 func (cm CornerMask) EraseCorners(img draw.Image) {
 	c := img.ColorModel().Convert(color.Transparent)
 	r := cm.Radius
 	if r == 0 {
 		return
-	} else if r > 8 {
+	} else if r > maxCornerRadius {
 		// Draw something awful to highlight unsupported values
 		c = img.ColorModel().Convert(
-			color.RGBA{R: 0, G: 0xFF, B: 0, A: 0x80},
+			color.RGBA{R: 0, G: 0x80, B: 0, A: 0x80},
 		)
-		r = 8
+		r = maxCornerRadius
 	}
 
 	min, max := cm.Min, cm.Max
@@ -59,15 +71,17 @@ func (cm CornerMask) RowInset(y int) int {
 	if y >= r {
 		y = cm.Dy() - y - 1
 	}
-	if r > 8 || y < 0 || y >= r {
+	if r > maxCornerRadius || y < 0 || y >= r {
 		return 0
 	}
 	return _roundInsets[r][y]
 }
 
+const maxCornerRadius = 9
+
 // This format can be visualized as the number of perpendicular
 // pixels that should be erased, given an x or y inset from the edge
-var _roundInsets = [9][]int{
+var _roundInsets = [maxCornerRadius + 1][]int{
 	{},
 	{1},
 	{2, 1},
@@ -77,4 +91,5 @@ var _roundInsets = [9][]int{
 	{6, 4, 3, 2, 1, 1},
 	{7, 5, 3, 2, 2, 1, 1},
 	{8, 6, 4, 3, 2, 2, 1, 1},
+	{9, 6, 4, 3, 2, 2, 1, 1, 1},
 }
