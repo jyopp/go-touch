@@ -30,9 +30,30 @@ func main() {
 		background := &Background{}
 		background.Init(display.Bounds(), 0xEE)
 
+		buttonArea := LayoutRect{background.Rectangle.Inset(10)}
+		// transparentWhite := color.RGBA{R: 0x99, G: 0x99, B: 0x99, A: 0x99}
+
+		statusArea := &BasicLayer{}
+		statusArea.SetFrame(buttonArea.Slice(40, 10, fromBottom).Rectangle)
+		statusArea.Background = color.White
+		statusArea.Radius = 5
+		background.AddChild(statusArea)
+
+		statusText := &TextLayer{}
+		statusText.Init(statusArea.Rectangle, systemBoldFont, 11.0)
+		statusText.Text = "Status Text Test"
+		statusText.Padding = 5
+		statusArea.AddChild(statusText)
+
+		setStatusText := func(text string) {
+			statusText.Text = text
+			statusArea.SetNeedsDisplay()
+		}
+
 		downloadBackground := func(button *Button) {
-			button.Label = "Downloading…"
+			button.Disabled = true
 			button.SetNeedsDisplay()
+			setStatusText("Downloading Wallpaper Image…")
 			display.Update()
 
 			const url = "https://news-cdn.softpedia.com/images/news2/here-are-all-iphone-and-mac-wallpapers-ever-released-by-apple-528707-3.jpg"
@@ -43,32 +64,15 @@ func main() {
 					imageLayer.Init(background.Bounds(), wallpaper)
 					imageLayer.Background = color.RGBA{R: 0x55, G: 0x55, B: 0x55, A: 0xFF}
 					background.InsertChild(imageLayer, 0)
-					button.Label = "Loaded"
+					setStatusText("Loaded Wallpaper")
 				} else {
-					button.Label = "Decode Err"
+					setStatusText("Decode Error: " + err.Error())
 				}
 			} else {
-				button.Label = "HTTP Err"
+				setStatusText("HTTP Error: " + err.Error())
 			}
-			button.Disabled = true
-			button.SetNeedsDisplay()
 			display.Update()
 		}
-
-		buttonArea := LayoutRect{background.Rectangle.Inset(10)}
-		transparentWhite := color.RGBA{R: 0x99, G: 0x99, B: 0x99, A: 0x99}
-
-		statusArea := &BasicLayer{}
-		statusArea.SetFrame(buttonArea.Slice(40, 10, fromBottom).Rectangle)
-		statusArea.Background = transparentWhite
-		statusArea.Radius = 5
-		background.AddChild(statusArea)
-
-		statusText := &TextLayer{}
-		statusText.Init(statusArea.Rectangle, systemBoldFont, 11.0)
-		statusText.Text = "Status Text Test"
-		statusText.Padding = 5
-		statusArea.AddChild(statusText)
 
 		icon, _ := Resources.ReadPNG("chevron-down.png")
 		for idx, rect := range buttonArea.Divide(3, 10, fromTop) {
@@ -81,15 +85,16 @@ func main() {
 					button.Icon, _ = Resources.ReadPNG("hex-cluster.png")
 					var once sync.Once
 					button.OnTap = func() {
-						go once.Do(func() {
-							downloadBackground(button)
+						once.Do(func() {
+							go downloadBackground(button)
 						})
 					}
 				} else {
 					button.Label = fmt.Sprintf("Button %d", 2*idx+idx2)
 					button.Icon = icon
 					button.OnTap = func() {
-						fmt.Printf("Tapped %s\n", button.Label)
+						statusText.Text = fmt.Sprintf("Tapped %s", button.Label)
+						statusArea.SetNeedsDisplay()
 					}
 				}
 				background.AddChild(button)
