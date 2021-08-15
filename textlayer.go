@@ -9,7 +9,7 @@ import (
 type TextLayer struct {
 	BasicLayer
 	Color    color.Color
-	Padding  int
+	Gravity  image.Point
 	Text     string
 	textFont *Font
 }
@@ -19,6 +19,7 @@ func (tl *TextLayer) Init(frame image.Rectangle, fontname string, fontsize float
 	tl.SetFont(fontname, fontsize)
 	tl.Background = color.Transparent
 	tl.Color = color.Black
+	tl.Gravity = gravityLeft
 	tl.Delegate = tl
 }
 
@@ -31,9 +32,9 @@ func (tl *TextLayer) Draw(layer Layer, ctx DrawingContext) {
 		ctx.Fill(tl.Rectangle, tl.Background, tl.Radius, draw.Over)
 	}
 
-	layout := LayoutRect{tl.Rectangle.Inset(tl.Padding)}
+	layout := LayoutRect{tl.Rectangle}
 
 	textSize := tl.textFont.Measure(tl.Text, layout.Size())
-	textRect := layout.Aligned(textSize, gravityLeft)
+	textRect := layout.Aligned(textSize, tl.Gravity)
 	tl.textFont.Draw(ctx.Image(), tl.Text, textRect, tl.Color)
 }

@@ -40,9 +40,8 @@ func main() {
 		background.AddChild(statusArea)
 
 		statusText := &TextLayer{}
-		statusText.Init(statusArea.Rectangle, systemBoldFont, 11.0)
+		statusText.Init(statusArea.Rectangle.Inset(8), systemBoldFont, 11.0)
 		statusText.Text = "Status Text Test"
-		statusText.Padding = 5
 		statusArea.AddChild(statusText)
 
 		setStatusText := func(text string) {
@@ -81,7 +80,7 @@ func main() {
 				button := &Button{}
 				button.Init(rect.Rectangle)
 				if num == 0 {
-					button.Label = "Wallpaper"
+					button.Label.Text = "Wallpaper"
 					button.Icon, _ = Resources.ReadPNG("hex-cluster.png")
 					var once sync.Once
 					button.OnTap = func() {
@@ -90,10 +89,10 @@ func main() {
 						})
 					}
 				} else {
-					button.Label = fmt.Sprintf("Button %d", 2*idx+idx2)
+					button.Label.Text = fmt.Sprintf("Button %d", 2*idx+idx2)
 					button.Icon = icon
 					button.OnTap = func() {
-						statusText.Text = fmt.Sprintf("Tapped %s", button.Label)
+						statusText.Text = fmt.Sprintf("Tapped %s", button.Label.Text)
 						statusArea.SetNeedsDisplay()
 					}
 				}
