@@ -1,4 +1,4 @@
-package main
+package fbui
 
 import (
 	"image"
@@ -28,7 +28,7 @@ func (layer *BufferedLayer) Display(ctx DrawingContext) {
 		layer.BasicLayer.Display(buffer)
 	}
 
-	// fmt.Printf("Compositing %T %v into %T %v\n", layer.identity, buffer.Rect, ctx, ctx.Bounds())
+	// fmt.Printf("Compositing %T %v into %T %v\n", layer.Delegate, buffer.Rect, ctx, ctx.Bounds())
 	draw.Draw(ctx.Image(), buffer.Rect, buffer, buffer.Rect.Min, draw.Over)
 	ctx.SetDirty(buffer.Rect)
 }

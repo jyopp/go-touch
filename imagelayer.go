@@ -1,4 +1,4 @@
-package main
+package fbui
 
 import (
 	"image"
@@ -7,28 +7,23 @@ import (
 
 type ImageLayer struct {
 	BasicLayer
-	Image    image.Image
-	Centered bool
+	Image   image.Image
+	Gravity image.Point
 }
 
 func (i *ImageLayer) Init(frame image.Rectangle, image image.Image) {
 	i.SetFrame(frame)
 	i.Image = image
-	i.Centered = true
+	i.Gravity = GravityCenter
 	i.Delegate = i
 }
 
 func (i *ImageLayer) Draw(layer Layer, ctx DrawingContext) {
-	if _, _, _, a := i.Background.RGBA(); a > 0x10 {
-		ctx.Fill(i.Frame(), i.Background, i.Radius, draw.Over)
-	}
+	ctx.Fill(i.Frame(), i.Background, i.Radius, draw.Over)
 
 	if i.Image != nil {
-		var negativeOffset image.Point
-		if i.Centered {
-			negativeOffset.X = (i.Image.Bounds().Dx() - i.Dx()) / 2
-			negativeOffset.Y = (i.Image.Bounds().Dy() - i.Dy()) / 2
-		}
-		draw.Draw(ctx.Image(), i.Rectangle, i.Image, negativeOffset, draw.Src)
+		size := i.Image.Bounds().Size()
+		rect := Layout(i.Rectangle).Aligned(size, i.Gravity)
+		draw.Draw(ctx.Image(), rect, i.Image, image.Point{}, draw.Src)
 	}
 }

@@ -1,4 +1,4 @@
-package main
+package fbui
 
 import (
 	"image"
@@ -9,9 +9,9 @@ import (
 type ControlState int
 
 const (
-	stateNormal      ControlState = 0x0
-	stateHighlighted ControlState = 0x1
-	stateDisabled    ControlState = 0x80
+	StateNormal      ControlState = 0x0
+	StateHighlighted ControlState = 0x1
+	StateDisabled    ControlState = 0x80
 )
 
 type Button struct {
@@ -22,12 +22,12 @@ type Button struct {
 	State ControlState
 }
 
-func (b *Button) Init(frame image.Rectangle) {
+func (b *Button) Init(frame image.Rectangle, labelFont string, size float64) {
 	b.SetFrame(frame)
 	b.Background = color.Transparent
 	b.Radius = 5
-	b.Label.Init(image.Rectangle{}, systemFont, 15)
-	b.Label.Gravity = gravityCenter
+	b.Label.Init(image.Rectangle{}, labelFont, size)
+	b.Label.Gravity = GravityCenter
 	b.Delegate = b
 	b.applyColors()
 }
@@ -41,31 +41,31 @@ func (b *Button) SetState(state ControlState) {
 
 func (b *Button) SetDisabled(disabled bool) {
 	if disabled {
-		b.SetState(stateDisabled)
+		b.SetState(StateDisabled)
 	} else {
-		b.SetState(stateNormal)
+		b.SetState(StateNormal)
 	}
 }
 
 func (b *Button) SetHighlighted(highlighted bool) {
-	if b.State == stateDisabled {
+	if b.State == StateDisabled {
 		return
 	} else if highlighted {
-		b.SetState(stateHighlighted)
+		b.SetState(StateHighlighted)
 	} else {
-		b.SetState(stateNormal)
+		b.SetState(StateNormal)
 	}
 }
 
 func (b *Button) applyColors() {
 	switch b.State {
-	case stateNormal:
+	case StateNormal:
 		b.Background = color.RGBA{R: 0xFF, G: 0xFE, B: 0xFC, A: 0xFF}
 		b.Label.Color = color.Black
-	case stateHighlighted:
+	case StateHighlighted:
 		b.Background = color.RGBA{R: 0x66, G: 0x99, B: 0xCC, A: 0xFF}
 		b.Label.Color = color.White
-	case stateDisabled:
+	case StateDisabled:
 		b.Background = color.RGBA{R: 0xBB, G: 0xBB, B: 0xBB, A: 0xDD}
 		b.Label.Color = color.Gray{0x77}
 	}
@@ -80,7 +80,7 @@ func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 
 	if b.Icon != nil {
 		iconSize := b.Icon.Bounds().Size()
-		iconBounds := layout.Slice(iconSize.Y, 5, fromTop).Aligned(iconSize, gravityCenter)
+		iconBounds := layout.Slice(iconSize.Y, 5, FromTop).Aligned(iconSize, GravityCenter)
 		draw.Draw(ctx.Image(), iconBounds, b.Icon, image.Point{}, draw.Over)
 	}
 

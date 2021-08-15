@@ -1,47 +1,52 @@
-package main
+package fbui
 
 import "image"
+
+type LayoutDirection int
+
+const (
+	FromLeft LayoutDirection = iota
+	FromRight
+	FromTop
+	FromBottom
+)
+
+var (
+	GravityCenter image.Point = image.Point{0x7FFF, 0x7FFF}
+
+	GravityTop    image.Point = image.Point{0x7FFF, 0}
+	GravityLeft   image.Point = image.Point{0, 0x7FFF}
+	GravityBottom image.Point = image.Point{0x7FFF, 0xFFFF}
+	GravityRight  image.Point = image.Point{0xFFFF, 0x7FFF}
+
+	GravityTopLeft     image.Point = image.Point{0, 0}
+	GravityTopRight    image.Point = image.Point{0xFFFF, 0}
+	GravityBottomLeft  image.Point = image.Point{0, 0xFFFF}
+	GravityBottomRight image.Point = image.Point{0xFFFF, 0xFFFF}
+)
 
 type LayoutRect struct {
 	image.Rectangle
 }
 
-type LayoutDirection int
-
-const (
-	fromLeft LayoutDirection = iota
-	fromRight
-	fromTop
-	fromBottom
-)
-
-var (
-	gravityCenter image.Point = image.Point{0x7FFF, 0x7FFF}
-
-	gravityTop    image.Point = image.Point{0x7FFF, 0}
-	gravityLeft   image.Point = image.Point{0, 0x7FFF}
-	gravityBottom image.Point = image.Point{0x7FFF, 0xFFFF}
-	gravityRight  image.Point = image.Point{0xFFFF, 0x7FFF}
-
-	gravityTopLeft     image.Point = image.Point{0, 0}
-	gravityTopRight    image.Point = image.Point{0xFFFF, 0}
-	gravityBottomLeft  image.Point = image.Point{0, 0xFFFF}
-	gravityBottomRight image.Point = image.Point{0xFFFF, 0xFFFF}
-)
+func Layout(rect image.Rectangle) (l LayoutRect) {
+	l.Rectangle = rect
+	return
+}
 
 func (l *LayoutRect) Slice(size, pad int, dir LayoutDirection) LayoutRect {
 	sliced := *l
 	switch dir {
-	case fromLeft:
+	case FromLeft:
 		sliced.Max.X = sliced.Min.X + size
 		l.Min.X = sliced.Max.X + pad
-	case fromRight:
+	case FromRight:
 		sliced.Min.X = sliced.Max.X - size
 		l.Max.X = sliced.Min.X - pad
-	case fromTop:
+	case FromTop:
 		sliced.Max.Y = sliced.Min.Y + size
 		l.Min.Y = sliced.Max.Y + pad
-	case fromBottom:
+	case FromBottom:
 		sliced.Min.Y = sliced.Max.Y - size
 		l.Max.Y = sliced.Min.Y - pad
 	}
@@ -52,11 +57,11 @@ func (l *LayoutRect) Repeat(size, pad int, dir LayoutDirection) []LayoutRect {
 	remain := *l
 	rects := []LayoutRect{}
 	switch dir {
-	case fromLeft, fromRight:
+	case FromLeft, FromRight:
 		for remain.Dx() >= size {
 			rects = append(rects, remain.Slice(size, pad, dir))
 		}
-	case fromTop, fromBottom:
+	case FromTop, FromBottom:
 		for remain.Dy() >= size {
 			rects = append(rects, remain.Slice(size, pad, dir))
 		}
@@ -67,9 +72,9 @@ func (l *LayoutRect) Repeat(size, pad int, dir LayoutDirection) []LayoutRect {
 func (l *LayoutRect) Divide(count, pad int, dir LayoutDirection) []LayoutRect {
 	var size int
 	switch dir {
-	case fromLeft, fromRight:
+	case FromLeft, FromRight:
 		size = l.Dx()
-	case fromTop, fromBottom:
+	case FromTop, FromBottom:
 		size = l.Dy()
 	}
 	size = (size+pad)/count - pad
@@ -92,4 +97,12 @@ func (l LayoutRect) Aligned(size, gravity image.Point) image.Rectangle {
 		Min: gp,
 		Max: gp.Add(size),
 	}
+}
+
+func (l LayoutRect) InsetBy(dx, dy int) LayoutRect {
+	l.Min.X += dx
+	l.Min.Y += dy
+	l.Max.X -= dx
+	l.Max.Y -= dy
+	return l
 }

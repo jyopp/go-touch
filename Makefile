@@ -1,12 +1,14 @@
 
-GONAME=$(shell basename "$(PWD)")
 GOTARGET=GOOS=linux GOARCH=arm GOARM=5
 REMOTE=pylit-2.local:~/touchInput/
 
-build:
-	$(GOTARGET) go build .
+# Check the build, by building everything for ARM w/o saving output
+check:
+	$(GOTARGET) go build ./...
 
-install: build
-	@scp -r $(GONAME) $(REMOTE)
+# Build the basic sample and install to the rmeote
+install-basic:
+	$(GOTARGET) go build -o "bin_arm/" ./examples/basic
+	@scp -C "bin_arm/basic" $(REMOTE)
 
-.PHONY: install
+.PHONY: check

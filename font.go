@@ -1,4 +1,4 @@
-package main
+package fbui
 
 import (
 	"image"
@@ -9,21 +9,14 @@ import (
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/gobold"
-	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/math/fixed"
-)
-
-const (
-	systemFont     = "goregular"
-	systemBoldFont = "gobold"
 )
 
 var (
 	// These global values affect how fonts are rendered.
 	// These values should be mutated only before fonts are loaded.
-	fontDPI                  float64 = 96
-	fontSubpixelQuantization         = 2
+	FontDPI                  float64 = 96
+	FontSubpixelQuantization int     = 2
 )
 
 type fontKey struct {
@@ -32,24 +25,24 @@ type fontKey struct {
 }
 
 var (
-	_ttfCache     map[string]*truetype.Font
-	_ttfProviders map[string]func() []byte
-	_fontCache    map[fontKey]*Font
-	_cacheMutex   sync.Mutex
+	ttfCache     map[string]*truetype.Font
+	ttfProviders map[string]func() []byte
+	fontCache    map[fontKey]*Font
+	fontsMutex   sync.Mutex
 )
 
-func registerTTF(name string, provider func() []byte) {
-	_ttfProviders[name] = provider
+func RegisterTTF(name string, provider func() []byte) {
+	ttfProviders[name] = provider
 }
 
 func loadTTF(name string) *truetype.Font {
-	if font, ok := _ttfCache[name]; ok {
+	if font, ok := ttfCache[name]; ok {
 		return font
 	}
 
-	if provider, ok := _ttfProviders[name]; ok {
+	if provider, ok := ttfProviders[name]; ok {
 		if font, err := truetype.Parse(provider()); err == nil {
-			_ttfCache[name] = font
+			ttfCache[name] = font
 			return font
 		}
 	}
@@ -57,16 +50,9 @@ func loadTTF(name string) *truetype.Font {
 }
 
 func init() {
-	_ttfCache = make(map[string]*truetype.Font)
-	_ttfProviders = map[string]func() []byte{}
-	_fontCache = make(map[fontKey]*Font)
-
-	registerTTF(systemFont, func() []byte {
-		return goregular.TTF
-	})
-	registerTTF(systemBoldFont, func() []byte {
-		return gobold.TTF
-	})
+	ttfCache = make(map[string]*truetype.Font)
+	ttfProviders = map[string]func() []byte{}
+	fontCache = make(map[fontKey]*Font)
 }
 
 type Font struct {
@@ -77,11 +63,11 @@ type Font struct {
 }
 
 func SharedFont(name string, size float64) *Font {
-	_cacheMutex.Lock()
-	defer _cacheMutex.Unlock()
+	fontsMutex.Lock()
+	defer fontsMutex.Unlock()
 
-	cacheKey := fontKey{name, size, fontDPI}
-	if f, ok := _fontCache[cacheKey]; ok {
+	cacheKey := fontKey{name, size, FontDPI}
+	if f, ok := fontCache[cacheKey]; ok {
 		return f
 	}
 	// TODO: This could be more threadsafe with a sync.Map
@@ -91,7 +77,7 @@ func SharedFont(name string, size float64) *Font {
 		return nil
 	}
 
-	_fontCache[cacheKey] = font
+	fontCache[cacheKey] = font
 	return font
 }
 
@@ -101,9 +87,9 @@ func (f *Font) Init(name string, size float64) {
 
 	opts := truetype.Options{
 		Size:       size,
-		DPI:        fontDPI,
-		SubPixelsX: fontSubpixelQuantization,
-		SubPixelsY: fontSubpixelQuantization,
+		DPI:        FontDPI,
+		SubPixelsX: FontSubpixelQuantization,
+		SubPixelsY: FontSubpixelQuantization,
 	}
 
 	font := loadTTF(name)

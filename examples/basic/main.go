@@ -7,20 +7,39 @@ import (
 	"net/http"
 	"os"
 	"sync"
+
+	ui "github.com/jyopp/fbui"
+
+	"golang.org/x/image/font/gofont/gobold"
+	"golang.org/x/image/font/gofont/goregular"
 )
+
+const (
+	SystemFont     = "goregular"
+	SystemBoldFont = "gobold"
+)
+
+func init() {
+	ui.RegisterTTF(SystemFont, func() []byte {
+		return goregular.TTF
+	})
+	ui.RegisterTTF(SystemBoldFont, func() []byte {
+		return gobold.TTF
+	})
+}
 
 func main() {
 	{
-		var display *Display
+		var display *ui.Display
 		if framebuffer, err := os.OpenFile("/dev/fb1", os.O_RDWR, 0); err == nil {
-			display = NewDisplay(320, 480, framebuffer)
+			display = ui.NewDisplay(320, 480, framebuffer)
 			defer framebuffer.Close()
 		} else {
 			panic(err)
 		}
 
 		// TODO: This needs to be an affine transform
-		calibration := TouchscreenCalibration{
+		calibration := ui.TouchscreenCalibration{
 			Left: 235, Right: 3750,
 			Top: 3800, Bottom: 80,
 			Weak: 180, Strong: 80,
@@ -30,17 +49,17 @@ func main() {
 		background := &Background{}
 		background.Init(display.Bounds(), 0xEE)
 
-		buttonArea := LayoutRect{background.Rectangle.Inset(10)}
+		buttonArea := ui.Layout(background.Rectangle).InsetBy(10, 10)
 		// transparentWhite := color.RGBA{R: 0x99, G: 0x99, B: 0x99, A: 0x99}
 
-		statusArea := &BasicLayer{}
-		statusArea.SetFrame(buttonArea.Slice(40, 10, fromBottom).Rectangle)
+		statusArea := &ui.BasicLayer{}
+		statusArea.SetFrame(buttonArea.Slice(40, 10, ui.FromBottom).Rectangle)
 		statusArea.Background = color.White
 		statusArea.Radius = 5
 		background.AddChild(statusArea)
 
-		statusText := &TextLayer{}
-		statusText.Init(statusArea.Rectangle.Inset(8), systemBoldFont, 11.0)
+		statusText := &ui.TextLayer{}
+		statusText.Init(statusArea.Rectangle.Inset(8), SystemBoldFont, 11.0)
 		statusText.Text = "Status Text Test"
 		statusArea.AddChild(statusText)
 
@@ -49,8 +68,8 @@ func main() {
 			statusArea.SetNeedsDisplay()
 		}
 
-		downloadBackground := func(button *Button) {
-			button.SetState(stateDisabled)
+		downloadBackground := func(button *ui.Button) {
+			button.SetDisabled(true)
 			button.SetNeedsDisplay()
 			setStatusText("Downloading Wallpaper Image…")
 			display.Update()
@@ -59,7 +78,7 @@ func main() {
 			if resp, err := http.Get(url); err == nil {
 				defer resp.Body.Close()
 				if wallpaper, err := jpeg.Decode(resp.Body); err == nil {
-					imageLayer := &ImageLayer{}
+					imageLayer := &ui.ImageLayer{}
 					imageLayer.Init(background.Bounds(), wallpaper)
 					imageLayer.Background = color.RGBA{R: 0x55, G: 0x55, B: 0x55, A: 0xFF}
 					background.InsertChild(imageLayer, 0)
@@ -74,11 +93,11 @@ func main() {
 		}
 
 		icon, _ := Resources.ReadPNG("chevron-down.png")
-		for idx, rect := range buttonArea.Divide(3, 10, fromTop) {
-			for idx2, rect := range rect.Divide(2, 10, fromLeft) {
+		for idx, rect := range buttonArea.Divide(3, 10, ui.FromTop) {
+			for idx2, rect := range rect.Divide(2, 10, ui.FromLeft) {
 				num := 2*idx + idx2
-				button := &Button{}
-				button.Init(rect.Rectangle)
+				button := &ui.Button{}
+				button.Init(rect.Rectangle, SystemFont, 15.0)
 				if num == 0 {
 					button.Label.Text = "Wallpaper"
 					button.Icon, _ = Resources.ReadPNG("hex-cluster.png")
@@ -109,11 +128,11 @@ func main() {
 			panic(err)
 		}
 
-		events := NewEventStream(inputFile)
+		events := ui.NewEventStream(inputFile)
 		// events.dump = true
 		go events.EventLoop()
 
-		var eventTarget LayerTouchDelegate
+		var eventTarget ui.LayerTouchDelegate
 
 		for event := range events.TouchEvents {
 			calibration.Adjust(&event)

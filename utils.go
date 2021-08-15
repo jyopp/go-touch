@@ -1,4 +1,4 @@
-package main
+package fbui
 
 // bytesFill optimally fills a byte array with a repeating pattern
 func bytesFill(b, pattern []byte) {

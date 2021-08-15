@@ -1,4 +1,4 @@
-package main
+package fbui
 
 import (
 	"image"
@@ -19,7 +19,7 @@ func (tl *TextLayer) Init(frame image.Rectangle, fontname string, fontsize float
 	tl.SetFont(fontname, fontsize)
 	tl.Background = color.Transparent
 	tl.Color = color.Black
-	tl.Gravity = gravityLeft
+	tl.Gravity = GravityLeft
 	tl.Delegate = tl
 }
 

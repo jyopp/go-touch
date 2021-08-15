@@ -1,4 +1,4 @@
-package main
+package fbui
 
 import (
 	"image"
@@ -17,7 +17,7 @@ type CornerMask struct {
 // removed if appropriate
 func (cm CornerMask) AlphaImage(opacity byte) *image.Alpha {
 	r := cm.Radius
-	if cm.Rectangle.Empty() || ((r == 0 || r > maxCornerRadius) && opacity == 0xFF) {
+	if cm.Rectangle.Empty() || ((r == 0 || r > MaxCornerRadius) && opacity == 0xFF) {
 		return nil
 	}
 
@@ -44,12 +44,12 @@ func (cm CornerMask) EraseCorners(img draw.Image) {
 	r := cm.Radius
 	if r == 0 {
 		return
-	} else if r > maxCornerRadius {
+	} else if r > MaxCornerRadius {
 		// Draw something awful to highlight unsupported values
 		c = img.ColorModel().Convert(
 			color.RGBA{R: 0, G: 0x80, B: 0, A: 0x80},
 		)
-		r = maxCornerRadius
+		r = MaxCornerRadius
 	}
 
 	min, max := cm.Min, cm.Max
@@ -71,17 +71,17 @@ func (cm CornerMask) RowInset(y int) int {
 	if y >= r {
 		y = cm.Dy() - y - 1
 	}
-	if r > maxCornerRadius || y < 0 || y >= r {
+	if r > MaxCornerRadius || y < 0 || y >= r {
 		return 0
 	}
 	return _roundInsets[r][y]
 }
 
-const maxCornerRadius = 9
+const MaxCornerRadius = 9
 
 // This format can be visualized as the number of perpendicular
 // pixels that should be erased, given an x or y inset from the edge
-var _roundInsets = [maxCornerRadius + 1][]int{
+var _roundInsets = [MaxCornerRadius + 1][]int{
 	{},
 	{1},
 	{2, 1},

@@ -1,4 +1,4 @@
-module github.com/jyopp/pi-touch-test
+module github.com/jyopp/fbui
 
 go 1.16
 

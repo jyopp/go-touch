@@ -1,4 +1,4 @@
-package main
+package fbui
 
 import (
 	"image"
@@ -139,6 +139,10 @@ func (b *DisplayBuffer) Fill(rect image.Rectangle, c color.Color, radius int, op
 	}
 
 	rgba := color.RGBAModel.Convert(c).(color.RGBA)
+	if rgba.A == 0 {
+		return
+	}
+
 	rowLen := rect.Dx() * 4
 	row := make([]byte, rowLen)
 	bytesFill(row, []byte{rgba.R, rgba.G, rgba.B, rgba.A})

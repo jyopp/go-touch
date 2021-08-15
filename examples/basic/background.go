@@ -4,10 +4,12 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+
+	ui "github.com/jyopp/fbui"
 )
 
 type Background struct {
-	BasicLayer
+	ui.BasicLayer
 	// Value from 0-255 controlling the brightness of the gradient
 	Brightness int
 }
@@ -18,7 +20,7 @@ func (b *Background) Init(frame image.Rectangle, brightness int) {
 	b.Delegate = b
 }
 
-func (b *Background) Draw(layer Layer, ctx DrawingContext) {
+func (b *Background) Draw(layer ui.Layer, ctx ui.DrawingContext) {
 	rect := b.Rectangle
 	bright := b.Brightness
 

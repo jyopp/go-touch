@@ -1,4 +1,4 @@
-package main
+package fbui
 
 type TouchscreenCalibration struct {
 	Left, Top, Right, Bottom int
