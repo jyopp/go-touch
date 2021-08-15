@@ -22,12 +22,7 @@ func (cm CornerMask) AlphaImage(opacity byte) *image.Alpha {
 	}
 
 	alpha := image.NewAlpha(cm.Rectangle)
-	px := alpha.Pix
-	px[0] = opacity
-	// Copy 2^n bytes on each pass
-	for i := 1; i < len(px); i *= 2 {
-		copy(px[i:], px[:i])
-	}
+	bytesFill(alpha.Pix, []byte{opacity})
 	cm.EraseCorners(alpha)
 	return alpha
 }

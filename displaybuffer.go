@@ -33,13 +33,8 @@ func (b *DisplayBuffer) Bounds() image.Rectangle {
 // Reset resets every pixel in the buffer as efficiently as possible.
 func (b *DisplayBuffer) Reset(c color.Color) {
 	// TODO: support clipped contexts with a separate codepath
-	px := b.Pix
 	rgba := color.RGBAModel.Convert(c).(color.RGBA)
-	l := copy(px, []byte{rgba.R, rgba.G, rgba.B, rgba.A})
-	// Copy l*2^n zeros on each pass
-	for ; l < len(px); l *= 2 {
-		copy(px[l:], px[:l])
-	}
+	bytesFill(b.Pix, []byte{rgba.R, rgba.G, rgba.B, rgba.A})
 }
 
 // Set the buffer's frame. Returns true if the image data was reinitialized.
@@ -146,10 +141,7 @@ func (b *DisplayBuffer) Fill(rect image.Rectangle, c color.Color, radius int, op
 	rgba := color.RGBAModel.Convert(c).(color.RGBA)
 	rowLen := rect.Dx() * 4
 	row := make([]byte, rowLen)
-	for i := copy(row, []byte{rgba.R, rgba.G, rgba.B, rgba.A}); i < rowLen; {
-		copy(row[i:], row[:i])
-		i *= 2
-	}
+	bytesFill(row, []byte{rgba.R, rgba.G, rgba.B, rgba.A})
 
 	if rgba.A < 0xFF {
 		op = draw.Over
