@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"sync"
@@ -26,9 +25,17 @@ var (
 	fontSubpixelQuantization         = 4
 )
 
-var _ttfCache map[string]*truetype.Font
-var _ttfProviders map[string]func() []byte
-var _fontCache map[string]*Font
+type fontKey struct {
+	name      string
+	size, dpi float64
+}
+
+var (
+	_ttfCache     map[string]*truetype.Font
+	_ttfProviders map[string]func() []byte
+	_fontCache    map[fontKey]*Font
+	_cacheMutex   sync.Mutex
+)
 
 func registerTTF(name string, provider func() []byte) {
 	_ttfProviders[name] = provider
@@ -51,7 +58,7 @@ func loadTTF(name string) *truetype.Font {
 func init() {
 	_ttfCache = make(map[string]*truetype.Font)
 	_ttfProviders = map[string]func() []byte{}
-	_fontCache = make(map[string]*Font)
+	_fontCache = make(map[fontKey]*Font)
 
 	registerTTF(systemFont, func() []byte {
 		return goregular.TTF
@@ -62,15 +69,17 @@ func init() {
 }
 
 type Font struct {
-	font *truetype.Font
 	face font.Face
 	m    sync.Mutex
-	opts truetype.Options
+	ctx  *freetype.Context
 }
 
 func SharedFont(name string, size float64) *Font {
-	cacheName := fmt.Sprintf("%s-%0.1f-%0f", name, size, fontDPI)
-	if f, ok := _fontCache[cacheName]; ok {
+	_cacheMutex.Lock()
+	defer _cacheMutex.Unlock()
+
+	cacheKey := fontKey{name, size, fontDPI}
+	if f, ok := _fontCache[cacheKey]; ok {
 		return f
 	}
 	// TODO: This could be more threadsafe with a sync.Map
@@ -80,7 +89,7 @@ func SharedFont(name string, size float64) *Font {
 		return nil
 	}
 
-	_fontCache[cacheName] = font
+	_fontCache[cacheKey] = font
 	return font
 }
 
@@ -88,25 +97,36 @@ func (f *Font) Init(name string, size float64) {
 	f.m.Lock()
 	defer f.m.Unlock()
 
-	f.opts.Size = size
-	f.opts.DPI = fontDPI
-	f.opts.Hinting = font.HintingFull
-	f.opts.SubPixelsX = fontSubpixelQuantization
-	f.opts.SubPixelsY = fontSubpixelQuantization
-
-	if f.font = loadTTF(name); f.font != nil {
-		f.face = truetype.NewFace(f.font, &f.opts)
+	opts := truetype.Options{
+		Size:       size,
+		DPI:        fontDPI,
+		Hinting:    font.HintingFull,
+		SubPixelsX: fontSubpixelQuantization,
+		SubPixelsY: fontSubpixelQuantization,
 	}
 
-	// Release all resources if initialization fails
-	if f.font == nil || f.face == nil {
-		// Maybe panic instead?
-		f.font, f.face = nil, nil
-		f.opts = truetype.Options{}
+	font := loadTTF(name)
+	if font == nil {
+		return
 	}
+	if f.face = truetype.NewFace(font, &opts); f.face == nil {
+		return
+	}
+
+	ctx := freetype.NewContext()
+	ctx.SetSrc(image.NewUniform(color.Alpha{0xFF}))
+	ctx.SetDPI(opts.DPI)
+	ctx.SetHinting(opts.Hinting)
+	ctx.SetFontSize(opts.Size)
+	// Set font last to avoid thrashing ctx's internal cache
+	ctx.SetFont(font)
+	f.ctx = ctx
 }
 
 func (f *Font) Render(text string, size image.Point, alpha uint8) *image.Alpha {
+	f.m.Lock()
+	defer f.m.Unlock()
+
 	metrics := f.face.Metrics()
 	advance := font.MeasureString(f.face, text)
 	// Extent is in points and must be converted to pixels.
@@ -126,28 +146,20 @@ func (f *Font) Render(text string, size image.Point, alpha uint8) *image.Alpha {
 
 	img := image.NewAlpha(renderBounds)
 
-	ctx := freetype.NewContext()
-	ctx.SetSrc(image.NewUniform(color.Alpha{alpha}))
-	ctx.SetDst(img)
-	ctx.SetClip(renderBounds)
-	ctx.SetDPI(f.opts.DPI)
-	ctx.SetHinting(f.opts.Hinting)
-	ctx.SetFontSize(f.opts.Size)
-	// Set font last to avoid thrashing ctx's internal cache
-	ctx.SetFont(f.font)
+	f.ctx.SetDst(img)
+	f.ctx.SetClip(renderBounds)
 
 	// BoundString isn't doing multiline drawing
 	textOrigin := fixed.Point26_6{
 		X: 0,
 		Y: metrics.Ascent,
 	}
-	if _, err := ctx.DrawString(text, textOrigin); err == nil {
-		// println("Rendered", text, "in", size.String(), ":", img.Rect.String())
-		return img
-	} else {
+	if _, err := f.ctx.DrawString(text, textOrigin); err != nil {
 		println("Failed to render", text, ":", err)
+		return nil
 	}
-	return nil
+	// println("Rendered", text, "in", size.String(), ":", img.Rect.String())
+	return img
 }
 
 // RenderedText caches the alphamask and dimensions of a text string
