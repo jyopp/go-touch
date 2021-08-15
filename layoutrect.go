@@ -15,6 +15,20 @@ const (
 	fromBottom
 )
 
+var (
+	gravityCenter image.Point = image.Point{0x7FFF, 0x7FFF}
+
+	gravityTop    image.Point = image.Point{0x7FFF, 0}
+	gravityLeft   image.Point = image.Point{0, 0x7FFF}
+	gravityBottom image.Point = image.Point{0x7FFF, 0xFFFF}
+	gravityRight  image.Point = image.Point{0xFFFF, 0x7FFF}
+
+	gravityTopLeft     image.Point = image.Point{0, 0}
+	gravityTopRight    image.Point = image.Point{0xFFFF, 0}
+	gravityBottomLeft  image.Point = image.Point{0, 0xFFFF}
+	gravityBottomRight image.Point = image.Point{0xFFFF, 0xFFFF}
+)
+
 func (l *LayoutRect) Slice(size, pad int, dir LayoutDirection) LayoutRect {
 	sliced := *l
 	switch dir {
@@ -62,24 +76,20 @@ func (l *LayoutRect) Divide(count, pad int, dir LayoutDirection) []LayoutRect {
 	return l.Repeat(size, pad, dir)
 }
 
-func (l LayoutRect) Centered(size image.Point) image.Rectangle {
+// Aligned returns a rect with the given size, aligned such that
+// the unit point at "gravity" in the layout rect and the returned
+// rect are coincident.
+// Gravity is expressed as a unit value from 0-65535.
+//   lr.Aligned(size, image.Point{0, 32768}) // Rect at left-center
+func (l LayoutRect) Aligned(size, gravity image.Point) image.Rectangle {
+	// Smoothly scale between (origin at Min) and (origin at Max - size)
+	gp := image.Point{
+		X: l.Min.X*(0xFFFF-gravity.X) + (l.Max.X-size.X)*gravity.X,
+		Y: l.Min.Y*(0xFFFF-gravity.Y) + (l.Max.Y-size.Y)*gravity.Y,
+	}.Div(0xFFFF)
+
 	return image.Rectangle{
-		Max: size,
-	}.Add(l.Min.Add(l.Max).Sub(size).Div(2))
-}
-
-func (l LayoutRect) LeftCentered(size image.Point) image.Rectangle {
-	rect := l.Centered(image.Point{X: l.Dx(), Y: size.Y})
-	rect.Max.X = rect.Min.X + size.X
-	return rect
-}
-
-func (l LayoutRect) RightCentered(size image.Point) image.Rectangle {
-	rect := l.Centered(image.Point{X: l.Dx(), Y: size.Y})
-	rect.Min.X = rect.Max.X - size.X
-	return rect
-}
-
-func (l LayoutRect) TopLeft(size image.Point) image.Rectangle {
-	return image.Rectangle{Max: size}.Add(l.Min)
+		Min: gp,
+		Max: gp.Add(size),
+	}
 }

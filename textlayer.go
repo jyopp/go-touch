@@ -34,6 +34,6 @@ func (tl *TextLayer) Draw(layer Layer, ctx DrawingContext) {
 	layout := LayoutRect{tl.Rectangle.Inset(tl.Padding)}
 
 	textSize := tl.textFont.Measure(tl.Text, layout.Size())
-	textRect := layout.LeftCentered(textSize)
+	textRect := layout.Aligned(textSize, gravityLeft)
 	tl.textFont.Draw(ctx.Image(), tl.Text, textRect, tl.Color)
 }

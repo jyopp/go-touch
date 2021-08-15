@@ -59,13 +59,13 @@ func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 
 	if b.Icon != nil {
 		iconSize := b.Icon.Bounds().Size()
-		iconBounds := layout.Slice(iconSize.Y, 5, fromTop).Centered(iconSize)
+		iconBounds := layout.Slice(iconSize.Y, 5, fromTop).Aligned(iconSize, gravityCenter)
 		draw.Draw(ctx.Image(), iconBounds, b.Icon, image.Point{}, draw.Over)
 	}
 
 	// Render the label text centered in the remaining area
 	labelSize := b.labelText.Prepare(b.Label, layout.Size())
-	labelRect := layout.Centered(labelSize)
+	labelRect := layout.Aligned(labelSize, gravityCenter)
 	// Debug drawing for text bounds
 	// ctx.Fill(labelRect, color.Gray{0xD0}, 0, draw.Src)
 	b.labelText.Draw(ctx.Image(), labelRect, textColor)
