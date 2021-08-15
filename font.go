@@ -116,7 +116,8 @@ func (f *Font) Measure(text string, maxsize image.Point) image.Point {
 
 	size := image.Point{
 		X: font.MeasureString(f.Face, text).Ceil(),
-		Y: (f.Metrics.Ascent + f.Metrics.Descent).Ceil(),
+		// Add 1px padding to the top; certain letters are clipped otherwise.
+		Y: (f.Metrics.Ascent + f.Metrics.Descent).Ceil() + 1,
 	}
 	if size.X > maxsize.X {
 		size.X = maxsize.X
@@ -138,7 +139,7 @@ func (f *Font) Draw(img draw.Image, text string, rect image.Rectangle, c color.C
 
 	textOrigin := fixed.Point26_6{
 		X: fixed.I(rect.Min.X),
-		Y: fixed.I(rect.Min.Y) + f.Metrics.Ascent,
+		Y: fixed.I(rect.Min.Y+1) + f.Metrics.Ascent,
 	}
 	_, err := f.ctx.DrawString(text, textOrigin)
 	// println("Rendered", text, "in", rect.String(), err)

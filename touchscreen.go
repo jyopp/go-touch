@@ -1,5 +1,6 @@
 package fbui
 
+// TODO: This needs to be based around an affine transform
 type TouchscreenCalibration struct {
 	Left, Top, Right, Bottom int
 	Weak, Strong             int
@@ -7,9 +8,9 @@ type TouchscreenCalibration struct {
 	convW, convH, convZ int
 }
 
-func (c *TouchscreenCalibration) Prepare(display *Display) {
-	c.convW = (display.Size.X << 16) / (c.Right - c.Left)
-	c.convH = (display.Size.Y << 16) / (c.Top - c.Bottom)
+func (c *TouchscreenCalibration) prepare(d *Display) {
+	c.convW = (d.Size.X << 16) / (c.Right - c.Left)
+	c.convH = (d.Size.Y << 16) / (c.Top - c.Bottom)
 	c.convZ = (1 << 24) / (c.Weak - c.Strong)
 }
 

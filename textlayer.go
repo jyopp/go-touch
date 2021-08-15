@@ -10,6 +10,7 @@ type TextLayer struct {
 	BasicLayer
 	Color    color.Color
 	Gravity  image.Point
+	Padding  image.Point
 	Text     string
 	textFont *Font
 }
@@ -28,11 +29,9 @@ func (tl *TextLayer) SetFont(name string, size float64) {
 }
 
 func (tl *TextLayer) Draw(layer Layer, ctx DrawingContext) {
-	if _, _, _, a := tl.Background.RGBA(); a > 0xFF {
-		ctx.Fill(tl.Rectangle, tl.Background, tl.Radius, draw.Over)
-	}
+	ctx.Fill(tl.Rectangle, tl.Background, tl.Radius, draw.Over)
 
-	layout := LayoutRect{tl.Rectangle}
+	layout := Layout(tl.Rectangle).InsetBy(tl.Padding.X, tl.Padding.Y)
 
 	textSize := tl.textFont.Measure(tl.Text, layout.Size())
 	textRect := layout.Aligned(textSize, tl.Gravity)

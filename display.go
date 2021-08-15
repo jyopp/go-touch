@@ -20,21 +20,26 @@ type Display struct {
 	DirtyRect   image.Rectangle
 }
 
-func NewDisplay(w, h int, framebuffer *os.File) *Display {
+func (d *Display) Init(w, h int, framebuffer *os.File) {
 	// Experimental MMAP, probably not robust.
-	data, err := syscall.Mmap(int(framebuffer.Fd()), 0, int(2*w*h), syscall.PROT_WRITE|syscall.PROT_READ, syscall.MAP_SHARED)
+	fd := int(framebuffer.Fd())
+	const protRW = syscall.PROT_WRITE | syscall.PROT_READ
+
+	fbData, err := syscall.Mmap(fd, 0, int(2*w*h), protRW, syscall.MAP_SHARED)
 	if err != nil {
-		panic("Can't get framebuffer")
+		panic("Can't mmap framebuffer")
 	}
-	display := &Display{
-		Size:        image.Point{w, h},
-		FrameBuffer: data,
+
+	bounds := image.Rectangle{Max: image.Point{w, h}}
+
+	*d = Display{
+		Size:        bounds.Max,
+		FrameBuffer: fbData,
 		DeviceFile:  framebuffer,
 		Layers:      []Layer{},
+		DrawBuffer:  NewDisplayBuffer(d, bounds),
+		DirtyRect:   bounds,
 	}
-	display.DrawBuffer = NewDisplayBuffer(display, display.Bounds())
-	display.DirtyRect = display.DrawBuffer.Rect
-	return display
 }
 
 func (d *Display) Bounds() image.Rectangle {
@@ -64,10 +69,10 @@ func (d *Display) Clear() {
 	}
 }
 
-// Update traverses the layer hierarchy, displaying any layers
+// update traverses the layer hierarchy, displaying any layers
 // that need to be displayed. If any layers are displayed, a
 // superset of all drawn rects is flushed to the display.
-func (d *Display) Update() {
+func (d *Display) update() {
 	start := time.Now()
 	for _, layer := range d.Layers {
 		if clip := d.DrawBuffer.Clip(layer.Frame()); clip != nil {

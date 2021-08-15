@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"os"
+	"syscall"
 )
 
 const (
@@ -17,10 +18,18 @@ const (
 )
 
 type EventStream struct {
+	DeviceFile *os.File
+	Events     chan interface{}
 	// Digitzer values for screen corners, and for weak / strong press
-	DeviceFile  *os.File
-	TouchEvents chan TouchEvent
+	Calibration TouchscreenCalibration
 	dump        bool
+}
+
+type inputEvent struct {
+	Time  syscall.Timeval
+	Type  uint16
+	Code  uint16
+	Value int32
 }
 
 type TouchEvent struct {
@@ -29,32 +38,38 @@ type TouchEvent struct {
 	Pressure int
 }
 
-func NewEventStream(deviceFile *os.File) *EventStream {
-	return &EventStream{
-		DeviceFile:  deviceFile,
-		TouchEvents: make(chan TouchEvent, 100),
-	}
+type displayUpdate struct{}
+
+func (es *EventStream) Init(deviceFile *os.File, c TouchscreenCalibration) {
+	es.DeviceFile = deviceFile
+	es.Calibration = c
+	es.Events = make(chan interface{}, 100)
 }
 
-func (es *EventStream) EventLoop() {
+func (es *EventStream) DisplayNeedsUpdate() {
+	es.Events <- displayUpdate{}
+}
+
+func (es *EventStream) inputReadLoop() {
 	var currentEvent TouchEvent
-	var e InputEvent
+	var e inputEvent
 
 	for {
 		if err := binary.Read(es.DeviceFile, binary.LittleEndian, &e); err != nil {
 			return
 		}
-		// println(len(rawEvents), "events")
-		if es.dump {
-			fmt.Printf("Event %+v\n", e)
-		}
 
 		if e.Time.Sec == 0 {
 			continue
 		}
+
+		if es.dump {
+			fmt.Printf("Event %+v\n", e)
+		}
+
 		switch e.Type {
 		case 0:
-			es.TouchEvents <- currentEvent
+			es.Events <- currentEvent
 		case 1:
 			// Button event
 			if e.Code == BTN_TOUCH {
@@ -69,6 +84,42 @@ func (es *EventStream) EventLoop() {
 				currentEvent.Y = int(e.Value)
 			case ABS_PRESSURE:
 				currentEvent.Pressure = int(e.Value)
+			}
+		}
+	}
+}
+
+func (e *EventStream) DispatchLoop(d *Display) {
+	// Set up calibration constants
+	e.Calibration.prepare(d)
+	// Draw the initial state of display
+	d.update()
+	// Start sending events to the event channel
+	go e.inputReadLoop()
+
+	var eventTarget LayerTouchDelegate
+	for raw := range e.Events {
+		switch event := raw.(type) {
+		case displayUpdate:
+			d.update()
+		case TouchEvent:
+			e.Calibration.Adjust(&event)
+			if event.Pressed {
+				if eventTarget != nil {
+					eventTarget.UpdateTouch(event)
+				} else {
+					// Only when there is no current event target, hit test for one.
+					if eventTarget = d.HitTest(event); eventTarget != nil {
+						eventTarget.StartTouch(event)
+					}
+				}
+				e.Events <- displayUpdate{}
+			} else {
+				if eventTarget != nil {
+					eventTarget.EndTouch(event)
+					eventTarget = nil
+					e.Events <- displayUpdate{}
+				}
 			}
 		}
 	}
