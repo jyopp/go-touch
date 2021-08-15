@@ -10,23 +10,16 @@ import (
 	"sync"
 
 	ui "github.com/jyopp/fbui"
-
-	"golang.org/x/image/font/gofont/gobold"
-	"golang.org/x/image/font/gofont/goregular"
 )
 
 const (
-	SystemFont     = "goregular"
-	SystemBoldFont = "gobold"
+	DefaultFont     = "Raleway-Medium.ttf"
+	DefaultBoldFont = "Raleway-SemiBold.ttf"
 )
 
 func init() {
-	ui.RegisterTTF(SystemFont, func() []byte {
-		return goregular.TTF
-	})
-	ui.RegisterTTF(SystemBoldFont, func() []byte {
-		return gobold.TTF
-	})
+	Resources.RegisterFont(DefaultFont)
+	Resources.RegisterFont(DefaultBoldFont)
 }
 
 var (
@@ -77,7 +70,7 @@ func buildUI() {
 	statusArea.Radius = 5
 	background.AddChild(statusArea)
 
-	statusText.Init(statusArea.Rectangle, SystemBoldFont, 11.0)
+	statusText.Init(statusArea.Rectangle, DefaultBoldFont, 11.0)
 	statusText.Text = "Status Text Test"
 	statusText.Color = color.Gray{0x33}
 	statusText.Padding = image.Point{X: 10, Y: 5}
@@ -88,7 +81,7 @@ func buildUI() {
 		for idx2, rect := range rect.Divide(2, 10, ui.FromLeft) {
 			num := 2*idx + idx2
 			button := &ui.Button{}
-			button.Init(rect.Rectangle, SystemFont, 15.0)
+			button.Init(rect.Rectangle, DefaultFont, 15.0)
 			if num == 0 {
 				button.Label.Text = "Wallpaper"
 				button.Icon, _ = Resources.ReadPNG("hex-cluster.png")
