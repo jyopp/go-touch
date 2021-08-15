@@ -28,9 +28,7 @@ func main() {
 		calibration.Prepare(display)
 
 		background := &Background{}
-		background.Init(display.Bounds())
-		background.Radius = 8
-		background.Brightness = 0xEE
+		background.Init(display.Bounds(), 0xEE)
 
 		downloadBackground := func(button *Button) {
 			button.Label = "Downloading…"
