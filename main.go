@@ -50,7 +50,7 @@ func main() {
 		}
 
 		downloadBackground := func(button *Button) {
-			button.Disabled = true
+			button.SetState(stateDisabled)
 			button.SetNeedsDisplay()
 			setStatusText("Downloading Wallpaper Image…")
 			display.Update()
