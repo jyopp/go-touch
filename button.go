@@ -63,16 +63,12 @@ func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 		draw.Draw(ctx.Image(), iconBounds, b.Icon, image.Point{}, draw.Over)
 	}
 
-	// Render or re-render the button's label as needed
-	b.labelText.Prepare(b.Label, layout.Size())
-	// Now draw the textColor using the cached alpha-mask
-	textAlpha := b.labelText.Alpha
-	// Center the text in the remaining space
-	textBounds := layout.Centered(textAlpha.Rect.Size())
-	textSrc := image.NewUniform(textColor)
+	// Render the label text centered in the remaining area
+	labelSize := b.labelText.Prepare(b.Label, layout.Size())
+	labelRect := layout.Centered(labelSize)
 	// Debug drawing for text bounds
-	// ctx.Fill(textBounds, color.Gray{0xD0}, 0, draw.Src)
-	draw.DrawMask(ctx.Image(), textBounds, textSrc, image.Point{}, textAlpha, image.Point{}, draw.Over)
+	// ctx.Fill(labelRect, color.Gray{0xD0}, 0, draw.Src)
+	b.labelText.Draw(ctx.Image(), labelRect, textColor)
 }
 
 func (b *Button) StartTouch(event TouchEvent) {

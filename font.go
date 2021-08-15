@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"image/color"
+	"image/draw"
 	"sync"
 
 	"github.com/golang/freetype"
@@ -69,9 +70,10 @@ func init() {
 }
 
 type Font struct {
-	face font.Face
-	m    sync.Mutex
-	ctx  *freetype.Context
+	Face    font.Face
+	Metrics font.Metrics
+	m       sync.Mutex
+	ctx     *freetype.Context
 }
 
 func SharedFont(name string, size float64) *Font {
@@ -85,7 +87,7 @@ func SharedFont(name string, size float64) *Font {
 	// TODO: This could be more threadsafe with a sync.Map
 	font := &Font{}
 	font.Init(name, size)
-	if font.face == nil {
+	if font.Face == nil {
 		return nil
 	}
 
@@ -109,12 +111,12 @@ func (f *Font) Init(name string, size float64) {
 	if font == nil {
 		return
 	}
-	if f.face = truetype.NewFace(font, &opts); f.face == nil {
+	if f.Face = truetype.NewFace(font, &opts); f.Face == nil {
 		return
 	}
+	f.Metrics = f.Face.Metrics()
 
 	ctx := freetype.NewContext()
-	ctx.SetSrc(image.NewUniform(color.Alpha{0xFF}))
 	ctx.SetDPI(opts.DPI)
 	ctx.SetHinting(opts.Hinting)
 	ctx.SetFontSize(opts.Size)
@@ -123,75 +125,37 @@ func (f *Font) Init(name string, size float64) {
 	f.ctx = ctx
 }
 
-func (f *Font) Render(text string, size image.Point, alpha uint8) *image.Alpha {
+func (f *Font) Measure(text string, maxsize image.Point) image.Point {
 	f.m.Lock()
 	defer f.m.Unlock()
 
-	metrics := f.face.Metrics()
-	advance := font.MeasureString(f.face, text)
-	// Extent is in points and must be converted to pixels.
-	renderBounds := image.Rectangle{
-		Max: image.Point{
-			X: advance.Ceil(),
-			// Use one line for now; font.BoundString is not consistent.
-			Y: (metrics.Ascent + metrics.Descent).Ceil(),
-		},
+	size := image.Point{
+		X: font.MeasureString(f.Face, text).Ceil(),
+		Y: (f.Metrics.Ascent + f.Metrics.Descent).Ceil(),
 	}
-	if renderBounds.Max.X > size.X {
-		renderBounds.Max.X = size.X
+	if size.X > maxsize.X {
+		size.X = maxsize.X
 	}
-	if renderBounds.Max.Y > size.Y {
-		renderBounds.Max.Y = size.Y
+	if size.Y > maxsize.Y {
+		size.Y = maxsize.Y
 	}
+	// println("Measured", text, "in", size.String())
+	return size
+}
 
-	img := image.NewAlpha(renderBounds)
+func (f *Font) Draw(img draw.Image, text string, rect image.Rectangle, c color.Color) error {
+	f.m.Lock()
+	defer f.m.Unlock()
 
+	f.ctx.SetSrc(image.NewUniform(c))
 	f.ctx.SetDst(img)
-	f.ctx.SetClip(renderBounds)
+	f.ctx.SetClip(rect)
 
-	// BoundString isn't doing multiline drawing
 	textOrigin := fixed.Point26_6{
-		X: 0,
-		Y: metrics.Ascent,
+		X: fixed.I(rect.Min.X),
+		Y: fixed.I(rect.Min.Y) + f.Metrics.Ascent,
 	}
-	if _, err := f.ctx.DrawString(text, textOrigin); err != nil {
-		println("Failed to render", text, ":", err)
-		return nil
-	}
-	// println("Rendered", text, "in", size.String(), ":", img.Rect.String())
-	return img
-}
-
-// RenderedText caches the alphamask and dimensions of a text string
-type RenderedText struct {
-	*image.Alpha
-	font    *Font
-	MaxSize image.Point
-	Text    string
-}
-
-func (rt *RenderedText) Invalidate() {
-	rt.Alpha = nil
-}
-
-func (rt *RenderedText) SetFont(name string, size float64) {
-	f := SharedFont(name, size)
-	if f == rt.font {
-		return
-	}
-	rt.font = f
-	rt.Alpha = nil
-}
-
-func (rt *RenderedText) Render() {
-	rt.Alpha = rt.font.Render(rt.Text, rt.MaxSize, 0xFF)
-}
-
-func (rt *RenderedText) Prepare(text string, maxSize image.Point) *image.Alpha {
-	if rt.Alpha == nil || !maxSize.Eq(rt.MaxSize) || text != rt.Text {
-		rt.MaxSize = maxSize
-		rt.Text = text
-		rt.Render()
-	}
-	return rt.Alpha
+	_, err := f.ctx.DrawString(text, textOrigin)
+	// println("Rendered", text, "in", rect.String(), err)
+	return err
 }

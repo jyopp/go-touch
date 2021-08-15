@@ -8,10 +8,10 @@ import (
 
 type TextLayer struct {
 	BasicLayer
-	Color     color.Color
-	Padding   int
-	Text      string
-	drawnText RenderedText
+	Color    color.Color
+	Padding  int
+	Text     string
+	textFont *Font
 }
 
 func (tl *TextLayer) Init(frame image.Rectangle, fontname string, fontsize float64) {
@@ -23,7 +23,7 @@ func (tl *TextLayer) Init(frame image.Rectangle, fontname string, fontsize float
 }
 
 func (tl *TextLayer) SetFont(name string, size float64) {
-	tl.drawnText.SetFont(name, size)
+	tl.textFont = SharedFont(name, size)
 }
 
 func (tl *TextLayer) Draw(layer Layer, ctx DrawingContext) {
@@ -33,9 +33,7 @@ func (tl *TextLayer) Draw(layer Layer, ctx DrawingContext) {
 
 	layout := LayoutRect{tl.Rectangle.Inset(tl.Padding)}
 
-	textMask := tl.drawnText.Prepare(tl.Text, tl.Size())
-	textRect := layout.LeftCentered(textMask.Rect.Size())
-	textSrc := image.NewUniform(tl.Color)
-	zp := image.Point{}
-	draw.DrawMask(ctx.Image(), textRect, textSrc, zp, textMask, zp, draw.Over)
+	textSize := tl.textFont.Measure(tl.Text, layout.Size())
+	textRect := layout.LeftCentered(textSize)
+	tl.textFont.Draw(ctx.Image(), tl.Text, textRect, tl.Color)
 }
