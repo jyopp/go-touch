@@ -47,7 +47,6 @@ func downloadBackground(button *ui.Button) {
 		if wallpaper, err := jpeg.Decode(resp.Body); err == nil {
 			imageLayer := &ui.ImageLayer{}
 			imageLayer.Init(background.Bounds(), wallpaper)
-			imageLayer.Background = color.RGBA{R: 0x55, G: 0x55, B: 0x55, A: 0xFF}
 			background.InsertChild(imageLayer, 0)
 			setStatusText("Loaded Wallpaper")
 		} else {

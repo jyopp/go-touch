@@ -3,7 +3,6 @@ package fbui
 import (
 	"image"
 	"image/color"
-	"image/draw"
 )
 
 type Layer interface {
@@ -39,7 +38,7 @@ type LayerTouchDelegate interface {
 }
 
 type LayerDrawDelegate interface {
-	Draw(layer Layer, ctx DrawingContext)
+	Draw(ctx DrawingContext)
 }
 
 type BasicLayer struct {
@@ -125,6 +124,13 @@ func (layer *BasicLayer) DisplayIfNeeded(ctx DrawingContext) {
 	}
 }
 
+// For delegation of default drawing behavior (Background / roundrect)
+func (layer *BasicLayer) Draw(ctx DrawingContext) {
+	if layer.Background != nil {
+		ctx.Fill(layer.Rectangle, layer.Background, layer.Radius)
+	}
+}
+
 // Display redraws the layer and its sublayers as needed, directly into ctx
 func (layer *BasicLayer) Display(ctx DrawingContext) {
 	// fmt.Printf("Drawing %T into %T %v\n", layer.identity, ctx, ctx.Bounds())
@@ -133,9 +139,9 @@ func (layer *BasicLayer) Display(ctx DrawingContext) {
 	// Eventually we'll need to convert into the destination coordinate space
 	// fmt.Printf("Drawing %T %v into %T %v\n", layer, layer, ctx, ctx)
 	if drawer, ok := layer.Delegate.(LayerDrawDelegate); ok {
-		drawer.Draw(layer, ctx)
+		drawer.Draw(ctx)
 	} else {
-		ctx.Fill(layerRect, layer.Background, layer.Radius, draw.Src)
+		layer.Draw(ctx)
 	}
 
 	// TODO: Let delegates decide what to mark dirty

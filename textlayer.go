@@ -3,7 +3,6 @@ package fbui
 import (
 	"image"
 	"image/color"
-	"image/draw"
 )
 
 type TextLayer struct {
@@ -18,7 +17,6 @@ type TextLayer struct {
 func (tl *TextLayer) Init(frame image.Rectangle, fontname string, fontsize float64) {
 	tl.SetFrame(frame)
 	tl.SetFont(fontname, fontsize)
-	tl.Background = color.Transparent
 	tl.Color = color.Black
 	tl.Gravity = GravityLeft
 	tl.Delegate = tl
@@ -28,8 +26,8 @@ func (tl *TextLayer) SetFont(name string, size float64) {
 	tl.textFont = SharedFont(name, size)
 }
 
-func (tl *TextLayer) Draw(layer Layer, ctx DrawingContext) {
-	ctx.Fill(tl.Rectangle, tl.Background, tl.Radius, draw.Over)
+func (tl *TextLayer) Draw(ctx DrawingContext) {
+	tl.BasicLayer.Draw(ctx)
 
 	layout := Layout(tl.Rectangle).InsetBy(tl.Padding.X, tl.Padding.Y)
 

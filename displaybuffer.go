@@ -129,10 +129,10 @@ func (b *DisplayBuffer) Clip(rect image.Rectangle) DrawingContext {
 	}
 }
 
-func (b *DisplayBuffer) Fill(rect image.Rectangle, c color.Color, radius int, op draw.Op) {
+func (b *DisplayBuffer) Fill(rect image.Rectangle, c color.Color, radius int) {
 	mask := CornerMask{rect, radius}
 	if !b.isClipped && b.Rect.In(rect) {
-		// Fastest path;
+		// Fastest path; Specifically for the root view of a buffered layer
 		b.Reset(c)
 		mask.EraseCorners(b)
 		return
@@ -147,6 +147,7 @@ func (b *DisplayBuffer) Fill(rect image.Rectangle, c color.Color, radius int, op
 	row := make([]byte, rowLen)
 	bytesFill(row, []byte{rgba.R, rgba.G, rgba.B, rgba.A})
 
+	op := draw.Src
 	if rgba.A < 0xFF {
 		op = draw.Over
 	}

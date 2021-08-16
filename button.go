@@ -24,7 +24,6 @@ type Button struct {
 
 func (b *Button) Init(frame image.Rectangle, labelFont string, size float64) {
 	b.SetFrame(frame)
-	b.Background = color.Transparent
 	b.Radius = 5
 	b.Label.Init(image.Rectangle{}, labelFont, size)
 	b.Label.Gravity = GravityCenter
@@ -73,8 +72,8 @@ func (b *Button) applyColors() {
 }
 
 // Need some sort of prepare phase for drawing
-func (b *Button) Draw(layer Layer, ctx DrawingContext) {
-	ctx.Fill(b.Rectangle, b.Background, b.Radius, draw.Over)
+func (b *Button) Draw(ctx DrawingContext) {
+	b.BasicLayer.Draw(ctx)
 
 	layout := LayoutRect{b.Rectangle.Inset(8)}
 
@@ -86,7 +85,7 @@ func (b *Button) Draw(layer Layer, ctx DrawingContext) {
 
 	// Render the label text in the remaining area
 	b.Label.SetFrame(layout.Rectangle)
-	b.Label.Draw(&b.Label, ctx)
+	b.Label.Draw(ctx)
 }
 
 func (b *Button) StartTouch(event TouchEvent) {

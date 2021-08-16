@@ -18,8 +18,8 @@ func (i *ImageLayer) Init(frame image.Rectangle, image image.Image) {
 	i.Delegate = i
 }
 
-func (i *ImageLayer) Draw(layer Layer, ctx DrawingContext) {
-	ctx.Fill(i.Frame(), i.Background, i.Radius, draw.Over)
+func (i *ImageLayer) Draw(ctx DrawingContext) {
+	i.BasicLayer.Draw(ctx)
 
 	if i.Image != nil {
 		size := i.Image.Bounds().Size()

@@ -21,7 +21,7 @@ type DrawingContext interface {
 
 	// Fill a rect (possibly rounded) with color.
 	// Radius indicates a corner radius that will be efficiently masked.
-	Fill(rect image.Rectangle, color color.Color, radius int, op draw.Op)
+	Fill(rect image.Rectangle, color color.Color, radius int)
 
 	// Marks this drawing context as needing to be flushed after drawing.
 	SetDirty(rect image.Rectangle)

@@ -103,7 +103,7 @@ func (d *Display) SetDirty(rect image.Rectangle) {
 // The entire DrawBuffer is flushed to the display before returning.
 func (d *Display) Redraw() {
 	buf := d.DrawBuffer
-	buf.Reset(color.Transparent)
+	buf.Reset(color.RGBA{})
 	d.DirtyRect = buf.Rect
 	for _, layer := range d.Layers {
 		if clip := buf.Clip(layer.Frame()); clip != nil {

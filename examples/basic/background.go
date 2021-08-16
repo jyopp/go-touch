@@ -20,7 +20,7 @@ func (b *Background) Init(frame image.Rectangle, brightness int) {
 	b.Delegate = b
 }
 
-func (b *Background) Draw(layer ui.Layer, ctx ui.DrawingContext) {
+func (b *Background) Draw(ctx ui.DrawingContext) {
 	rect := b.Rectangle
 	bright := b.Brightness
 
