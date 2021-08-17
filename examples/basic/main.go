@@ -85,7 +85,7 @@ func buildUI() {
 				button.Label.Text = "Wallpaper"
 				button.Icon.Image, _ = Resources.ReadPNG("hex-cluster.png")
 				var once sync.Once
-				button.OnTap = func() {
+				button.Actions[ui.ControlTapped] = func(button *ui.Button) {
 					once.Do(func() {
 						go downloadBackground(button)
 					})
@@ -93,7 +93,7 @@ func buildUI() {
 			} else {
 				button.Label.Text = fmt.Sprintf("Button %d", 2*idx+idx2)
 				button.Icon.Image = icon
-				button.OnTap = func() {
+				button.Actions[ui.ControlTapped] = func(button *ui.Button) {
 					statusText.Text = fmt.Sprintf("Tapped %s", button.Label.Text)
 					statusArea.SetNeedsDisplay()
 				}
