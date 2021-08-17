@@ -24,6 +24,6 @@ func (i *ImageLayer) Draw(ctx DrawingContext) {
 	if i.Image != nil {
 		size := i.Image.Bounds().Size()
 		rect := Layout(i.Rectangle).Aligned(size, i.Gravity)
-		draw.Draw(ctx.Image(), rect, i.Image, image.Point{}, draw.Src)
+		draw.Draw(ctx.Image(), rect, i.Image, image.Point{}, draw.Over)
 	}
 }

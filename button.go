@@ -3,7 +3,6 @@ package fbui
 import (
 	"image"
 	"image/color"
-	"image/draw"
 )
 
 type ControlState int
@@ -18,7 +17,7 @@ type Button struct {
 	BasicLayer
 	OnTap func()
 	Label TextLayer
-	Icon  image.Image
+	Icon  ImageLayer
 	State ControlState
 }
 
@@ -27,6 +26,7 @@ func (b *Button) Init(frame image.Rectangle, labelFont string, size float64) {
 	b.Radius = 5
 	b.Label.Init(image.Rectangle{}, labelFont, size)
 	b.Label.Gravity = GravityCenter
+	b.Icon.Init(image.Rectangle{}, nil)
 	b.Delegate = b
 	b.applyColors()
 }
@@ -77,10 +77,10 @@ func (b *Button) Draw(ctx DrawingContext) {
 
 	layout := LayoutRect{b.Rectangle.Inset(8)}
 
-	if b.Icon != nil {
-		iconSize := b.Icon.Bounds().Size()
-		iconBounds := layout.Slice(iconSize.Y, 5, FromTop).Aligned(iconSize, GravityCenter)
-		draw.Draw(ctx.Image(), iconBounds, b.Icon, image.Point{}, draw.Over)
+	if b.Icon.Image != nil {
+		imgHeight := b.Icon.Bounds().Dy()
+		b.Icon.SetFrame(layout.Slice(imgHeight, 5, FromTop).Rectangle)
+		b.Icon.Draw(ctx)
 	}
 
 	// Render the label text in the remaining area

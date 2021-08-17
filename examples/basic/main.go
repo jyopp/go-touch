@@ -83,7 +83,7 @@ func buildUI() {
 			button.Init(rect.Rectangle, DefaultFont, 15.0)
 			if num == 0 {
 				button.Label.Text = "Wallpaper"
-				button.Icon, _ = Resources.ReadPNG("hex-cluster.png")
+				button.Icon.Image, _ = Resources.ReadPNG("hex-cluster.png")
 				var once sync.Once
 				button.OnTap = func() {
 					once.Do(func() {
@@ -92,7 +92,7 @@ func buildUI() {
 				}
 			} else {
 				button.Label.Text = fmt.Sprintf("Button %d", 2*idx+idx2)
-				button.Icon = icon
+				button.Icon.Image = icon
 				button.OnTap = func() {
 					statusText.Text = fmt.Sprintf("Tapped %s", button.Label.Text)
 					statusArea.SetNeedsDisplay()
