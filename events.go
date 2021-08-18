@@ -20,9 +20,7 @@ const (
 type EventStream struct {
 	DeviceFile *os.File
 	Events     chan interface{}
-	// Digitzer values for screen corners, and for weak / strong press
-	Calibration TouchscreenCalibration
-	dump        bool
+	dump       bool
 }
 
 type inputEvent struct {
@@ -40,9 +38,8 @@ type TouchEvent struct {
 
 type displayUpdate struct{}
 
-func (es *EventStream) Init(deviceFile *os.File, c TouchscreenCalibration) {
+func (es *EventStream) Init(deviceFile *os.File) {
 	es.DeviceFile = deviceFile
-	es.Calibration = c
 	es.Events = make(chan interface{}, 100)
 }
 
@@ -90,8 +87,6 @@ func (es *EventStream) inputReadLoop() {
 }
 
 func (e *EventStream) DispatchLoop(d *Display) {
-	// Set up calibration constants
-	e.Calibration.prepare(d)
 	// Draw the initial state of display
 	d.update()
 	// Start sending events to the event channel
@@ -103,7 +98,7 @@ func (e *EventStream) DispatchLoop(d *Display) {
 		case displayUpdate:
 			d.update()
 		case TouchEvent:
-			e.Calibration.Adjust(&event)
+			d.Calibration.Adjust(&event)
 			if event.Pressed {
 				if eventTarget != nil {
 					eventTarget.UpdateTouch(event)

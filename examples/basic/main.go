@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -105,20 +106,31 @@ func buildUI() {
 	display.AddLayer(background)
 }
 
+var (
+	// Calibration describes the behavior of the touchscreen in its natural orientation.
+	// Display will swap Min & Max values as needed to match the display's rotation.
+	touchCalibration = ui.TouchscreenCalibration{
+		MinX: 235, MaxX: 3750,
+		MinY: 3800, MaxY: 80, // Y-Axis events are bottom-to-top in the natural orientation
+		Weak: 180, Strong: 80,
+	}
+)
+
 func main() {
+	rotationAngle := flag.Int("rotation", 0, "Rotation of the display")
+	flag.Parse()
+
 	if framebuffer, err := os.OpenFile("/dev/fb1", os.O_RDWR, 0); err == nil {
-		display.Init(320, 480, framebuffer)
+		// Width and height are screen's 'natural' dimensions.
+		// They will be swapped if needed based on the rotationAngle provided.
+		display.Init(320, 480, *rotationAngle, framebuffer, touchCalibration)
 		defer framebuffer.Close()
 	} else {
 		panic(err)
 	}
 
 	if eventFile, err := os.Open("/dev/input/event0"); err == nil {
-		events.Init(eventFile, ui.TouchscreenCalibration{
-			Left: 235, Right: 3750,
-			Top: 3800, Bottom: 80,
-			Weak: 180, Strong: 80,
-		})
+		events.Init(eventFile)
 		defer eventFile.Close()
 		// events.dump = true
 	} else {

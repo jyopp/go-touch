@@ -18,19 +18,40 @@ type Display struct {
 	Layers      []Layer
 	DrawBuffer  *DisplayBuffer
 	DirtyRect   image.Rectangle
+
+	// Digitzer values for screen corners, and for weak / strong press
+	Calibration TouchscreenCalibration
 }
 
-func (d *Display) Init(w, h int, framebuffer *os.File) {
+// TODO: Read info from ioctl, which is nontrivial.
+// See https://www.kernel.org/doc/html/latest/fb/api.html
+// See https://github.com/torvalds/linux/blob/master/include/uapi/linux/fb.h
+//
+// const FBIOGET_VSCREENINFO = 0x4600
+// const FBIOPUT_VSCREENINFO = 0x4601
+// const FBIOGET_FSCREENINFO = 0x4602
+// rv, _, err := syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd),
+//                               uintptr(FBIOGET_FSCREENINFO),
+//                               uintptr(unsafe.Pointer(&fixedScreenInfo)))
+
+func (d *Display) Init(w, h, rotation int, framebuffer *os.File, calibration TouchscreenCalibration) {
 	// Experimental MMAP, probably not robust.
 	fd := int(framebuffer.Fd())
 	const protRW = syscall.PROT_WRITE | syscall.PROT_READ
 
 	fbData, err := syscall.Mmap(fd, 0, int(2*w*h), protRW, syscall.MAP_SHARED)
 	if err != nil {
-		panic("Can't mmap framebuffer")
+		panic(fmt.Errorf("can't mmap framebuffer: %v", err))
+	}
+
+	calibration.orient(rotation)
+	if calibration.swapAxes {
+		// NOTE: This swaps Display buffers' dimensions too.
+		w, h = h, w
 	}
 
 	bounds := image.Rectangle{Max: image.Point{w, h}}
+	calibration.prepare(w, h)
 
 	*d = Display{
 		Size:        bounds.Max,
@@ -39,6 +60,7 @@ func (d *Display) Init(w, h int, framebuffer *os.File) {
 		Layers:      []Layer{},
 		DrawBuffer:  NewDisplayBuffer(d, bounds),
 		DirtyRect:   bounds,
+		Calibration: calibration,
 	}
 }
 
