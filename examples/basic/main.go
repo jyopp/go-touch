@@ -77,9 +77,9 @@ func buildUI() {
 	statusArea.AddChild(statusText)
 
 	icon, _ := Resources.ReadPNG("chevron-down.png")
-	for idx, rect := range buttonArea.Divide(3, 10, ui.FromTop) {
-		for idx2, rect := range rect.Divide(2, 10, ui.FromLeft) {
-			num := 2*idx + idx2
+	for idx, rect := range buttonArea.Divide(2, 10, ui.FromTop) {
+		for idx2, rect := range rect.Divide(3, 10, ui.FromLeft) {
+			num := 3*idx + idx2
 			button := &ui.Button{}
 			button.Init(rect.Rectangle, DefaultFont, 15.0)
 			if num == 0 {
