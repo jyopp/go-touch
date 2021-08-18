@@ -162,9 +162,10 @@ func (d *Display) Flush() {
 		rowR = buf.Stride
 	}
 
+	left := min.Y * fbStride
 	for y := min.Y; y < max.Y; y++ {
-		left := y * fbStride
 		fbRow := d.FrameBuffer[left : left+fbStride : left+fbStride]
+		left += fbStride
 
 		row := buf.GetRow(y)
 		for i := rowL; i < rowR; i += 4 {
@@ -178,5 +179,5 @@ func (d *Display) Flush() {
 }
 
 func pixel565(r, g, b byte) (byte, byte) {
-	return ((g << 3) & 0b11100000) | b>>3, (r & 0b11111000) | (g >> 5)
+	return ((g & 0b00011100) << 3) | b>>3, (r & 0b11111000) | g>>5
 }
