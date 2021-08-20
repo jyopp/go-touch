@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"os"
+	"sort"
 	"syscall"
 	"time"
 )
@@ -17,7 +18,7 @@ type Display struct {
 	DeviceFile  *os.File
 	Layers      []Layer
 	DrawBuffer  *DisplayBuffer
-	DirtyRect   image.Rectangle
+	DirtyRects  []image.Rectangle
 
 	// Digitzer values for screen corners, and for weak / strong press
 	Calibration TouchscreenCalibration
@@ -59,7 +60,7 @@ func (d *Display) Init(w, h, rotation int, framebuffer *os.File, calibration Tou
 		DeviceFile:  framebuffer,
 		Layers:      []Layer{},
 		DrawBuffer:  NewDisplayBuffer(d, bounds),
-		DirtyRect:   bounds,
+		DirtyRects:  []image.Rectangle{bounds},
 		Calibration: calibration,
 	}
 }
@@ -102,7 +103,7 @@ func (d *Display) update() {
 		}
 	}
 	drawn := time.Now()
-	drewRect := d.DirtyRect
+	drewRects := d.DirtyRects
 	d.Flush()
 
 	if time.Since(start).Milliseconds() > 0 {
@@ -110,14 +111,64 @@ func (d *Display) update() {
 			"Updated: Draw %dms / Flush %dms in %v\n",
 			drawn.Sub(start).Milliseconds(),
 			time.Since(drawn).Milliseconds(),
-			drewRect,
+			drewRects,
 		)
 	}
 }
 
-// SetDirty expands the dirty rect to include all pixels in rect.
+// TODO: This can be made much more complex, returning an array-of-rects
+// For example if r1.Intersect(r2).(Min,Max).Y == r2.(Min,Max).Y, the
+// intersecting part of r2 should be removed and the exclusion returned.
+func shouldMergeDrawRects(r1, r2 image.Rectangle) bool {
+	if !r1.Overlaps(r2) {
+		return false
+	} else if r1.Min.Y <= r2.Min.Y {
+		// r1.Min is above or at r2.Min
+		return r2.Max.Y <= r1.Min.Y
+	} else {
+		return r2.Max.Y >= r1.Max.Y
+	}
+}
+
+func (d *Display) mergeDirtyRects() {
+	// Sort rects by their Min.Y in ascending order
+	sort.Slice(d.DirtyRects, func(i, j int) bool {
+		return d.DirtyRects[i].Min.Y < d.DirtyRects[j].Min.Y
+	})
+	// Reduce all overlapping rects.
+	// This is a heuristic, vulnerable to some worst-case patterns.
+	for idx, rect := range d.DirtyRects[1:] {
+		if rect.Overlaps(d.DirtyRects[idx]) {
+			d.DirtyRects[idx+1] = rect.Union(d.DirtyRects[idx])
+			d.DirtyRects[idx] = image.Rectangle{}
+		}
+	}
+	sort.Slice(d.DirtyRects, func(i, j int) bool {
+		rI, rJ := d.DirtyRects[i], d.DirtyRects[j]
+		if rI.Empty() {
+			return false
+		} else if rJ.Empty() {
+			return true
+		}
+		return d.DirtyRects[i].Min.Y < d.DirtyRects[j].Min.Y
+	})
+	// Truncate all the empty rects out.
+	i := len(d.DirtyRects)
+	for i > 0 && d.DirtyRects[i-1].Empty() {
+		i--
+	}
+	d.DirtyRects = d.DirtyRects[:i]
+}
+
+// SetDirty expands or appends a dirty rect to include all pixels in rect.
 func (d *Display) SetDirty(rect image.Rectangle) {
-	d.DirtyRect = d.DirtyRect.Union(rect)
+	for idx := range d.DirtyRects {
+		if shouldMergeDrawRects(rect, d.DirtyRects[idx]) {
+			d.DirtyRects[idx] = rect.Union(d.DirtyRects[idx])
+			return
+		}
+	}
+	d.DirtyRects = append(d.DirtyRects, rect)
 }
 
 // Redraw erases the contents of the DrawBuffer and unconditonally
@@ -126,20 +177,30 @@ func (d *Display) SetDirty(rect image.Rectangle) {
 func (d *Display) Redraw() {
 	buf := d.DrawBuffer
 	buf.Reset(color.RGBA{})
-	d.DirtyRect = buf.Rect
 	for _, layer := range d.Layers {
 		if clip := buf.Clip(layer.Frame()); clip != nil {
 			layer.Display(clip)
 		}
 	}
-	d.Flush()
+	d.flushRect(buf.Rect)
+	d.DirtyRects = d.DirtyRects[:0]
 }
 
-// Flush wirtes downsampled pixels in DirtyRect to the Framebuffer.
+// Flush writes downsampled pixels in DirtyRect to the Framebuffer.
 // If DirtyRect is empty, this function returns immediately.
 // Upon return, dirtyRect is always empty.
 func (d *Display) Flush() {
-	dirty := d.DirtyRect
+	if len(d.DirtyRects) == 0 {
+		return
+	}
+	d.mergeDirtyRects()
+	for _, rect := range d.DirtyRects {
+		d.flushRect(rect)
+	}
+	d.DirtyRects = d.DirtyRects[:0]
+}
+
+func (d *Display) flushRect(dirty image.Rectangle) {
 	if dirty.Empty() {
 		// Nothing to draw
 		return
@@ -174,8 +235,6 @@ func (d *Display) Flush() {
 			fbRow[i>>1], fbRow[i>>1+1] = pixel565(sPxl[0], sPxl[1], sPxl[2])
 		}
 	}
-
-	d.DirtyRect = image.Rectangle{}
 }
 
 func pixel565(r, g, b byte) (byte, byte) {
