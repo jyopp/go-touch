@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"image"
@@ -8,6 +9,7 @@ import (
 	"image/jpeg"
 	"net/http"
 	"os"
+	"os/signal"
 	"sync"
 
 	ui "github.com/jyopp/fbui"
@@ -40,7 +42,7 @@ func downloadBackground(button *ui.Button) {
 	button.SetDisabled(true)
 	button.SetNeedsDisplay()
 	setStatusText("Downloading Wallpaper Image…")
-	events.DisplayNeedsUpdate()
+	events.RequestDisplayUpdate()
 
 	const url = "https://news-cdn.softpedia.com/images/news2/here-are-all-iphone-and-mac-wallpapers-ever-released-by-apple-528707-3.jpg"
 	if resp, err := http.Get(url); err == nil {
@@ -56,7 +58,7 @@ func downloadBackground(button *ui.Button) {
 	} else {
 		setStatusText("HTTP Error: " + err.Error())
 	}
-	events.DisplayNeedsUpdate()
+	events.RequestDisplayUpdate()
 }
 
 func buildUI() {
@@ -139,5 +141,9 @@ func main() {
 
 	buildUI()
 
-	events.DispatchLoop(display)
+	signalCtx, signalCleanup := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer signalCleanup()
+
+	defer display.Clear()
+	events.DispatchLoop(display, signalCtx)
 }

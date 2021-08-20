@@ -1,6 +1,7 @@
 package fbui
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"image"
@@ -18,9 +19,10 @@ const (
 )
 
 type EventStream struct {
-	DeviceFile *os.File
-	Events     chan interface{}
-	dump       bool
+	DeviceFile     *os.File
+	Events         chan TouchEvent
+	displayUpdates chan struct{}
+	dump           bool
 }
 
 type inputEvent struct {
@@ -36,15 +38,14 @@ type TouchEvent struct {
 	Pressure int
 }
 
-type displayUpdate struct{}
-
 func (es *EventStream) Init(deviceFile *os.File) {
 	es.DeviceFile = deviceFile
-	es.Events = make(chan interface{}, 100)
+	es.Events = make(chan TouchEvent, 100)
+	es.displayUpdates = make(chan struct{}, 10)
 }
 
-func (es *EventStream) DisplayNeedsUpdate() {
-	es.Events <- displayUpdate{}
+func (es *EventStream) RequestDisplayUpdate() {
+	es.displayUpdates <- struct{}{}
 }
 
 func (es *EventStream) inputReadLoop() {
@@ -86,18 +87,17 @@ func (es *EventStream) inputReadLoop() {
 	}
 }
 
-func (e *EventStream) DispatchLoop(d *Display) {
+func (e *EventStream) DispatchLoop(d *Display, c context.Context) {
 	// Draw the initial state of display
 	d.update()
 	// Start sending events to the event channel
 	go e.inputReadLoop()
 
 	var eventTarget LayerTouchDelegate
-	for raw := range e.Events {
-		switch event := raw.(type) {
-		case displayUpdate:
-			d.update()
-		case TouchEvent:
+outer:
+	for {
+		select {
+		case event := <-e.Events:
 			d.Calibration.Adjust(&event)
 			if event.Pressed {
 				if eventTarget != nil {
@@ -108,14 +108,18 @@ func (e *EventStream) DispatchLoop(d *Display) {
 						eventTarget.StartTouch(event)
 					}
 				}
-				e.Events <- displayUpdate{}
+				e.RequestDisplayUpdate()
 			} else {
 				if eventTarget != nil {
 					eventTarget.EndTouch(event)
 					eventTarget = nil
-					e.Events <- displayUpdate{}
+					e.RequestDisplayUpdate()
 				}
 			}
+		case <-e.displayUpdates:
+			d.update()
+		case <-c.Done():
+			break outer
 		}
 	}
 }
