@@ -103,17 +103,22 @@ func (d *Display) update() {
 		}
 	}
 	drawn := time.Now()
-	drewRects := d.DirtyRects
-	d.Flush()
+
+	// Don't delegate to Flush because we're dumping diagnostic logs...
+	d.mergeDirtyRects()
+	for _, rect := range d.DirtyRects {
+		d.flushRect(rect)
+	}
 
 	if time.Since(start).Milliseconds() > 0 {
 		fmt.Printf(
 			"Updated: Draw %dms / Flush %dms in %v\n",
 			drawn.Sub(start).Milliseconds(),
 			time.Since(drawn).Milliseconds(),
-			drewRects,
+			d.DirtyRects,
 		)
 	}
+	d.DirtyRects = d.DirtyRects[:0]
 }
 
 // TODO: This can be made much more complex, returning an array-of-rects
@@ -131,6 +136,9 @@ func shouldMergeDrawRects(r1, r2 image.Rectangle) bool {
 }
 
 func (d *Display) mergeDirtyRects() {
+	if len(d.DirtyRects) == 0 {
+		return
+	}
 	// Sort rects by their Min.Y in ascending order
 	sort.Slice(d.DirtyRects, func(i, j int) bool {
 		return d.DirtyRects[i].Min.Y < d.DirtyRects[j].Min.Y
