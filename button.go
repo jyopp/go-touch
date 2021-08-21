@@ -21,6 +21,7 @@ func (b *Button) Init(frame image.Rectangle, labelFont string, size float64) {
 	b.Label.Init(image.Rectangle{}, labelFont, size)
 	b.Label.Gravity = GravityCenter
 	b.Icon.Init(image.Rectangle{}, nil)
+	b.children = []Layer{&b.Icon, &b.Label}
 	b.Self = b
 	b.StateDidChange()
 }
@@ -36,7 +37,7 @@ func (b *Button) StateDidChange() {
 		b.Background = color.RGBA{R: 0xFF, G: 0xFE, B: 0xFC, A: 0xFF}
 		b.Label.Color = color.Black
 	}
-	b.needsDisplay = true
+	b.Invalidate()
 }
 
 func (b *Button) HandleAction(action ControlAction) {
@@ -46,18 +47,14 @@ func (b *Button) HandleAction(action ControlAction) {
 }
 
 // Need some sort of prepare phase for drawing
-func (b *Button) Draw(ctx DrawingContext) {
-	b.BasicLayer.Draw(ctx)
-
+func (b *Button) DrawIn(ctx DrawingContext) {
+	// "Layout Sublayers"
 	layout := LayoutRect{b.Rectangle.Inset(8)}
-
 	if img := b.Icon.Image; img != nil {
 		imgRect := layout.Slice(img.Bounds().Dy(), b.Spacing, FromTop).Rectangle
 		b.Icon.SetFrame(imgRect)
-		b.Icon.Draw(ctx)
 	}
-
-	// Render the label text in the remaining area
 	b.Label.SetFrame(layout.Rectangle)
-	b.Label.Draw(ctx)
+
+	b.BasicLayer.DrawIn(ctx)
 }

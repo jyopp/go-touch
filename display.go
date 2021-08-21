@@ -45,19 +45,14 @@ func (d *Display) Init(w, h, rotation int, framebuffer *os.File, calibration Tou
 		w, h = h, w
 	}
 
-	bounds := image.Rectangle{Max: image.Point{w, h}}
 	calibration.prepare(w, h)
 
 	*d = Display{
-		Size:        bounds.Max,
+		Size:        image.Point{w, h},
 		FrameBuffer: fbData,
 		DeviceFile:  framebuffer,
 		Calibration: calibration,
 	}
-}
-
-func (d *Display) Bounds() image.Rectangle {
-	return image.Rectangle{Max: d.Size}
 }
 
 // Clear writes zeros to the framebuffer without performing
@@ -74,7 +69,7 @@ func (d *Display) render(buf *image.RGBA) {
 		// Nothing to draw
 		return
 	}
-	// println("Flushing Rect", d.DirtyRect.String())
+	// println("Sending to framebuffer:", rect.String())
 
 	min, max := rect.Min, rect.Max
 	fbStride := buf.Stride / 2

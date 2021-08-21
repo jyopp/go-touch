@@ -2,11 +2,13 @@ package fbui
 
 import (
 	"image"
+	"image/draw"
 )
 
 type BufferedLayer struct {
 	BasicLayer
 	Buffer
+	invalid RegionList
 }
 
 func (layer *BufferedLayer) SetFrame(frame image.Rectangle) {
@@ -17,28 +19,34 @@ func (layer *BufferedLayer) SetFrame(frame image.Rectangle) {
 	layer.Buffer.SetFrame(frame)
 }
 
-// Display redraws the layer and its children into the buffer.
-// Unlike other layers, ctx may be nil; In this case, the buffer is drawn
-// but not copied to a drawing context.
-func (layer *BufferedLayer) Display(ctx DrawingContext) {
-	buffer := &layer.Buffer
-	if layer.needsDisplay {
-		layer.BasicLayer.Display(buffer)
-	}
+func (layer *BufferedLayer) InvalidateRect(rect image.Rectangle) {
+	layer.invalid.AddRect(rect)
+	layer.BasicLayer.InvalidateRect(rect)
+}
 
-	if ctx != nil {
-		buffer.SetDirty(ctx.Bounds())
-		buffer.Flush(ctx)
+// Render draws and composites any invalid regions to the buffer
+func (layer *BufferedLayer) Render() {
+	for _, rect := range layer.invalid.Dequeue() {
+		layer.Layer().DrawIn(layer.Buffer.Clip(rect))
 	}
 }
 
-func (layer *BufferedLayer) DisplayIfNeeded(ctx DrawingContext) {
-	if layer.needsDisplay {
-		// When calling interface methods, call from outermost
-		// struct type so that embedding types can override methods.
-		layer.Layer().Display(ctx)
-	} else {
-		layer.DrawChildren(&layer.Buffer, image.Rectangle{})
-		layer.Buffer.Flush(ctx)
+// DrawIn redraws the layer and its children into the buffer.
+// Unlike other layers, ctx may be nil; In this case, the buffer is drawn
+// but not copied to a drawing context.
+func (layer *BufferedLayer) DrawIn(ctx DrawingContext) {
+	// Delegate when drawing into our buffer
+	if layer.Buffer.IsAncestor(ctx) {
+		layer.BasicLayer.DrawIn(ctx)
+		return
+	}
+
+	// When rendering to an external context, update the buffer and draw from it
+	layer.Render()
+
+	if ctx != nil {
+		rect := layer.Buffer.Bounds().Intersect(ctx.Bounds())
+		draw.Draw(ctx.Image(), rect, layer.Buffer.RGBA, rect.Min, draw.Over)
+		ctx.SetDirty(rect)
 	}
 }

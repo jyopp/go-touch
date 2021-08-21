@@ -35,9 +35,8 @@ var (
 
 func downloadBackground(button *ui.Button) {
 	button.SetDisabled(true)
-	button.SetNeedsDisplay()
+	button.Invalidate()
 	statusText.SetText("Downloading Wallpaper Image…")
-	events.RequestDisplayUpdate()
 
 	const url = "https://news-cdn.softpedia.com/images/news2/here-are-all-iphone-and-mac-wallpapers-ever-released-by-apple-528707-3.jpg"
 	if resp, err := http.Get(url); err == nil {
@@ -53,7 +52,6 @@ func downloadBackground(button *ui.Button) {
 	} else {
 		statusText.SetText("HTTP Error: " + err.Error())
 	}
-	events.RequestDisplayUpdate()
 }
 
 func buildUI() {
@@ -92,8 +90,8 @@ func buildUI() {
 				button.Label.Text = fmt.Sprintf("Button %d", 2*idx+idx2)
 				button.Icon.Image = icon
 				button.Actions[ui.ControlTapped] = func(button *ui.Button) {
-					statusText.Text = fmt.Sprintf("Tapped %s", button.Label.Text)
-					statusArea.SetNeedsDisplay()
+					text := fmt.Sprintf("Tapped %s", button.Label.Text)
+					statusText.SetText(text)
 				}
 			}
 			background.AddChild(button)

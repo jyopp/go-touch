@@ -20,11 +20,6 @@ func (rl *RegionList) AddRect(rect image.Rectangle) {
 	rl.Rects = append(rl.Rects, rect)
 }
 
-func (rl *RegionList) Clear() {
-	// Truncate without mutating storage or changing capacity
-	rl.Rects = rl.Rects[:0]
-}
-
 // TODO: This can be made much more complex, returning an array-of-rects
 // For example if r1.Intersect(r2).(Min,Max).Y == r2.(Min,Max).Y, the
 // intersecting part of r2 should be removed and the exclusion returned.
@@ -39,14 +34,14 @@ func (rl *RegionList) shouldMerge(r1, r2 image.Rectangle) bool {
 	}
 }
 
-// Reduce performs a best-effort to coalesce and remove overlapping rectangles
+// Dequeue performs a best-effort to coalesce and remove overlapping rectangles
 // by covering them with fewer, larger rectangles.
-// Upon return, the list is guaranteed not to contain any overlapping rectangles.
-// Returns the number of nonempty rectangles in the list after the reduction.
-func (rl *RegionList) Reduce() int {
+// The returned list is guaranteed not to contain any overlapping rectangles.
+// Returns the coalesced rectangles and clears the region list.
+func (rl *RegionList) Dequeue() []image.Rectangle {
 	rects := rl.Rects
 	if len(rects) == 0 {
-		return 0
+		return nil
 	}
 	// Sort rects by their Min.Y in ascending order
 	sort.Slice(rects, func(i, j int) bool {
@@ -78,7 +73,7 @@ func (rl *RegionList) Reduce() int {
 		return rects[i].Min.Y < rects[j].Min.Y
 	})
 
-	// Truncate the slice to exclude the empty rects
-	rl.Rects = rects[:newLength]
-	return newLength
+	// Clear all rects in the set.
+	rl.Rects = rl.Rects[:0]
+	return rects[:newLength]
 }

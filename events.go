@@ -19,10 +19,9 @@ const (
 )
 
 type EventStream struct {
-	DeviceFile     *os.File
-	Events         chan TouchEvent
-	displayUpdates chan struct{}
-	dump           bool
+	DeviceFile *os.File
+	Events     chan TouchEvent
+	dump       bool
 }
 
 type inputEvent struct {
@@ -41,11 +40,6 @@ type TouchEvent struct {
 func (es *EventStream) Init(deviceFile *os.File) {
 	es.DeviceFile = deviceFile
 	es.Events = make(chan TouchEvent, 100)
-	es.displayUpdates = make(chan struct{}, 10)
-}
-
-func (es *EventStream) RequestDisplayUpdate() {
-	es.displayUpdates <- struct{}{}
 }
 
 func (es *EventStream) inputReadLoop() {
@@ -108,15 +102,13 @@ outer:
 						eventTarget.StartTouch(event)
 					}
 				}
-				e.RequestDisplayUpdate()
 			} else {
 				if eventTarget != nil {
 					eventTarget.EndTouch(event)
 					eventTarget = nil
-					e.RequestDisplayUpdate()
 				}
 			}
-		case <-e.displayUpdates:
+		case <-win.redrawCh:
 			win.update()
 		case <-c.Done():
 			break outer

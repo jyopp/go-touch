@@ -13,10 +13,9 @@ type Layer interface {
 	Frame() image.Rectangle
 	SetFrame(frame image.Rectangle)
 
-	NeedsDisplay() bool
-	SetNeedsDisplay()
-	DisplayIfNeeded(ctx DrawingContext)
-	Display(ctx DrawingContext)
+	Invalidate()
+	InvalidateRect(rect image.Rectangle)
+	DrawIn(ctx DrawingContext)
 
 	HitTest(TouchEvent) LayerTouchDelegate
 
@@ -41,19 +40,14 @@ type LayerTouchDelegate interface {
 	EndTouch(TouchEvent)
 }
 
-type LayerDrawDelegate interface {
-	Draw(ctx DrawingContext)
-}
-
 type BasicLayer struct {
 	image.Rectangle
 	Radius     int
 	Background color.Color
 	Self       Layer
 
-	parent       Layer
-	children     []Layer
-	needsDisplay bool
+	parent   Layer
+	children []Layer
 }
 
 // Layer returns a layer interface to the outermost struct associated with this layer.
@@ -72,7 +66,10 @@ func (layer *BasicLayer) SetFrame(frame image.Rectangle) {
 	if layer.Eq(frame) {
 		return
 	}
-	layer.needsDisplay = true
+	leafClass := layer.Layer()
+	leafClass.InvalidateRect(layer.Rectangle)
+	leafClass.InvalidateRect(frame)
+
 	layer.Rectangle = frame
 }
 
@@ -82,18 +79,13 @@ func (layer *BasicLayer) AddChild(child Layer) {
 }
 
 func (layer *BasicLayer) InsertChild(child Layer, index int) {
+	child.SetParent(layer.Layer())
 	if index < len(layer.children) {
 		// Splice array into itself, duplicating element at index.
 		layer.children = append(layer.children[:index+1], layer.children[index:]...)
 		layer.children[index] = child
 	} else {
 		layer.children = append(layer.children, child)
-	}
-	rect := child.Frame()
-	for _, other := range layer.children[index:] {
-		if other.Frame().Overlaps(rect) {
-			child.SetNeedsDisplay()
-		}
 	}
 }
 
@@ -124,80 +116,41 @@ func (layer *BasicLayer) Parent() Layer {
 }
 
 func (layer *BasicLayer) SetParent(parent Layer) {
-	layer.SetNeedsDisplay()
 	layer.parent = parent
+	layer.Invalidate()
 }
 
 func (layer *BasicLayer) Children() []Layer {
 	return layer.children
 }
 
-func (layer *BasicLayer) NeedsDisplay() bool {
-	return layer.needsDisplay
+func (layer *BasicLayer) Invalidate() {
+	layer.Layer().InvalidateRect(layer.Rectangle)
 }
 
-func (layer *BasicLayer) SetNeedsDisplay() {
-	layer.needsDisplay = true
-	if parent := layer.parent; parent != nil {
-		// TODO: Just send the global rect to the Display.
-		// This should take the form NeedsRedraw(rect)
-		// Or perhaps Display.NeedsRedraw(layer) / Display.WillMove(layer)
-		if !layer.IsOpaque() {
-			parent.SetNeedsDisplay()
-		}
+func (layer *BasicLayer) InvalidateRect(rect image.Rectangle) {
+	if p := layer.Parent(); p != nil {
+		p.InvalidateRect(rect)
 	}
 }
 
 // DrawChildren draws child layers IFF they are visible in ctx, and (need display or overlap rect)
-func (layer *BasicLayer) DrawChildren(ctx DrawingContext, mustDraw image.Rectangle) {
+func (layer *BasicLayer) DrawChildren(ctx DrawingContext) {
 	// Restrict mustDraw to be within ctx for performance; Does not affect correctness.
-	mustDraw = ctx.Bounds().Intersect(mustDraw)
-
+	drawRect := ctx.Bounds()
 	for _, child := range layer.children {
-		if child.NeedsDisplay() || mustDraw.Overlaps(child.Frame()) {
+		if drawRect.Overlaps(child.Frame()) {
 			if clipped := ctx.Clip(child.Frame()); clipped != nil {
-				child.Display(clipped)
-			}
-		} else {
-			// TEMP: Always delegate down the hierarchy, until we have global invalidated rects
-			if clipped := ctx.Clip(child.Frame()); clipped != nil {
-				child.DisplayIfNeeded(ctx)
+				child.DrawIn(clipped)
 			}
 		}
 	}
 }
 
-func (layer *BasicLayer) DisplayIfNeeded(ctx DrawingContext) {
-	if layer.needsDisplay {
-		// When calling interface methods, call from outermost
-		// struct type so that embedding types can override methods.
-		layer.Layer().Display(ctx)
-	} else {
-		// Pass empty rectangle so no child is forcibly redrawn;
-		// Only draws children with NeedsDisplay == true
-		layer.DrawChildren(ctx, image.Rectangle{})
-	}
-}
-
 // For delegation of default drawing behavior (Background / roundrect)
-func (layer *BasicLayer) Draw(ctx DrawingContext) {
+func (layer *BasicLayer) DrawIn(ctx DrawingContext) {
 	if layer.Background != nil {
 		ctx.Fill(layer.Rectangle, layer.Background, layer.Radius)
 	}
-}
-
-// Display redraws the layer and its sublayers as needed, directly into ctx
-func (layer *BasicLayer) Display(ctx DrawingContext) {
-	// fmt.Printf("Drawing %T into %T %v\n", layer.Self, ctx, ctx.Bounds())
-
-	// Eventually we'll need to convert into the destination coordinate space
-	if drawer, ok := layer.Layer().(LayerDrawDelegate); ok {
-		drawer.Draw(ctx)
-	}
-
-	// TODO: Let delegates decide what to mark dirty
-	ctx.SetDirty(layer.Rectangle)
-	// Redraw all visible children
-	layer.DrawChildren(ctx, layer.Rectangle)
-	layer.needsDisplay = false
+	layer.DrawChildren(ctx)
 }

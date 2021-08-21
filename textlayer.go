@@ -24,16 +24,16 @@ func (tl *TextLayer) Init(frame image.Rectangle, fontname string, fontsize float
 
 func (tl *TextLayer) SetFont(name string, size float64) {
 	tl.textFont = SharedFont(name, size)
-	tl.SetNeedsDisplay()
+	tl.Invalidate()
 }
 
 func (tl *TextLayer) SetText(text string) {
 	tl.Text = text
-	tl.SetNeedsDisplay()
+	tl.Invalidate()
 }
 
-func (tl *TextLayer) Draw(ctx DrawingContext) {
-	tl.BasicLayer.Draw(ctx)
+func (tl *TextLayer) DrawIn(ctx DrawingContext) {
+	tl.BasicLayer.DrawIn(ctx)
 
 	layout := Layout(tl.Rectangle).InsetBy(tl.Padding.X, tl.Padding.Y)
 

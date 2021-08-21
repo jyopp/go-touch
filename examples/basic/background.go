@@ -20,26 +20,29 @@ func (b *Background) Init(frame image.Rectangle, brightness int) {
 	b.Self = b
 }
 
-func (b *Background) Draw(ctx ui.DrawingContext) {
-	rect := b.Rectangle
+func (b *Background) DrawIn(ctx ui.DrawingContext) {
+	bounds := b.Rectangle.Intersect(ctx.Bounds())
 	bright := b.Brightness
 
 	var c color.RGBA
 	c.A = 0xFF
 
-	h := rect.Dy()
-	for y := rect.Min.Y; y < rect.Max.Y; y++ {
-		c.B = byte(bright * (y - rect.Min.Y) / h)
+	row := make([]byte, 4*bounds.Dx())
+	origin, size := b.Rectangle.Min, b.Rectangle.Size()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		c.B = byte(bright * (y - origin.Y) / size.Y)
 
-		row := ctx.GetRow(rect.Min.Y + y)
 		// For each pixel in row
-		for i, rowLen := 0, len(row); i < rowLen; i += 4 {
-			c.R = byte(bright * i / rowLen)
+		for i := 0; i < len(row); i += 4 {
+			c.R = byte(bright * (bounds.Min.X + i/4) / size.X)
 			c.G = byte(bright) - c.R/4 - c.B/2
 
 			pix := row[i : i+4 : i+4]
 			pix[0], pix[1], pix[2], pix[3] = c.R, c.G, c.B, c.A
 		}
-		ctx.DrawRow(row, rect.Min.X, y, draw.Src)
+		ctx.DrawRow(row, bounds.Min.X, y, draw.Src)
 	}
+	ctx.SetDirty(bounds)
+
+	b.DrawChildren(ctx)
 }

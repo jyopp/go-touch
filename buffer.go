@@ -23,6 +23,19 @@ func (b *Buffer) Bounds() image.Rectangle {
 	return b.Rect
 }
 
+func (b *Buffer) IsAncestor(ctx DrawingContext) bool {
+	other, ok := ctx.(*Buffer)
+	if !ok {
+		return false
+	}
+	for ; other != nil; other = other.parent {
+		if other == b {
+			return true
+		}
+	}
+	return false
+}
+
 // Reset resets every pixel in the buffer as efficiently as possible.
 func (b *Buffer) Reset(c color.Color) {
 	// TODO: support clipped contexts with a separate codepath
@@ -105,21 +118,6 @@ func (b *Buffer) SetDirty(rect image.Rectangle) {
 		b = b.parent
 	}
 	b.dirty.AddRect(rect)
-}
-
-// Flush copies the current buffer's dirty regions to ctx
-// If this buffer represents a clipped subregion in a parent buffer, this
-// method has no effect.
-func (b *Buffer) Flush(ctx DrawingContext) {
-	// b.dirty should be empty in clipped (child) buffers
-	if ctx != nil && b.dirty.Reduce() > 0 {
-		img := ctx.Image()
-		for _, rect := range b.dirty.Rects {
-			draw.Draw(img, rect, b.RGBA, rect.Min, draw.Over)
-			ctx.SetDirty(rect)
-		}
-		b.dirty.Clear()
-	}
 }
 
 func (b *Buffer) Clip(rect image.Rectangle) DrawingContext {

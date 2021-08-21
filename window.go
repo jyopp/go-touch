@@ -11,12 +11,14 @@ import (
 
 type Window struct {
 	BufferedLayer
-	display *Display
+	display  *Display
+	redrawCh chan struct{}
 }
 
 func (w *Window) Init(display *Display) {
-	w.SetFrame(display.Bounds())
+	w.SetFrame(image.Rectangle{Max: display.Size})
 	w.Self = w
+	w.redrawCh = make(chan struct{}, 1)
 	w.display = display
 }
 
@@ -24,20 +26,29 @@ func (w *Window) Calibrate(ev *TouchEvent) {
 	w.display.Calibration.Adjust(ev)
 }
 
+func (w *Window) InvalidateRect(rect image.Rectangle) {
+	w.invalid.AddRect(rect)
+
+	// This pattern sends a struct to the channel IFF it doesn't block.
+	// Since the channel capacity is 1, this means the channel send
+	// will succeed at most once per turn of the event loop
+	select {
+	case w.redrawCh <- struct{}{}:
+	default:
+	}
+}
+
 // update traverses the layer hierarchy, displaying any layers
 // that need to be displayed. If any layers are displayed, a
 // superset of all drawn rects is flushed to the display.
 func (w *Window) update() {
 	start := time.Now()
-	w.BufferedLayer.DisplayIfNeeded(nil)
+	w.BufferedLayer.Render()
 	w.checkRoundCorners()
 	drawn := time.Now()
 
-	if w.dirty.Reduce() == 0 {
-		return
-	}
-
-	for _, rect := range w.dirty.Rects {
+	rects := w.dirty.Dequeue()
+	for _, rect := range rects {
 		w.display.render(w.Buffer.SubImage(rect).(*image.RGBA))
 	}
 
@@ -46,11 +57,9 @@ func (w *Window) update() {
 			"Updated: Draw %dms / Flush %dms in %v\n",
 			drawn.Sub(start).Milliseconds(),
 			time.Since(drawn).Milliseconds(),
-			w.dirty.Rects,
+			rects,
 		)
 	}
-	// Truncate without modifying underlying storage or capacity
-	w.dirty.Clear()
 }
 
 func (w *Window) checkRoundCorners() {
@@ -67,16 +76,11 @@ func (w *Window) checkRoundCorners() {
 	}
 }
 
-func (w *Window) SetDirty(rect image.Rectangle) {
-	w.dirty.AddRect(rect)
-}
-
 // Redraw erases the contents of the DrawBuffer and unconditonally
 // redraws all layers.
 // The entire DrawBuffer is flushed to the display before returning.
 func (w *Window) Redraw() {
 	w.Buffer.Reset(color.RGBA{})
-	w.BufferedLayer.Display(nil)
-	w.display.render(w.Buffer.RGBA)
-	w.dirty.Clear()
+	w.Invalidate()
+	w.update()
 }
