@@ -70,8 +70,8 @@ func (b *Buffer) DrawRow(row []byte, x, y int, op draw.Op) {
 	}
 
 	if x < min.X {
-		row = row[-4*x:]
-		x = 0
+		row = row[-4*(x-min.X):]
+		x = min.X
 	}
 
 	if x >= max.X || y >= max.Y {
