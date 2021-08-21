@@ -33,8 +33,10 @@ func (w *Window) update() {
 	w.checkRoundCorners()
 	drawn := time.Now()
 
-	// Don't delegate to Flush because we're dumping diagnostic logs...
-	w.dirty.Reduce()
+	if w.dirty.Reduce() == 0 {
+		return
+	}
+
 	for _, rect := range w.dirty.Rects {
 		w.display.render(w.Buffer.SubImage(rect).(*image.RGBA))
 	}

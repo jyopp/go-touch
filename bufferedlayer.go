@@ -38,12 +38,7 @@ func (layer *BufferedLayer) DisplayIfNeeded(ctx DrawingContext) {
 		// struct type so that embedding types can override methods.
 		layer.Layer().Display(ctx)
 	} else {
-		for _, child := range layer.children {
-			// Draw children into the buffer
-			if clip := layer.Buffer.Clip(child.Frame()); clip != nil {
-				child.DisplayIfNeeded(clip)
-			}
-			layer.Buffer.Flush(ctx)
-		}
+		layer.DrawChildren(&layer.Buffer, image.Rectangle{})
+		layer.Buffer.Flush(ctx)
 	}
 }

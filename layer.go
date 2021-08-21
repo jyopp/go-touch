@@ -148,17 +148,34 @@ func (layer *BasicLayer) SetNeedsDisplay() {
 	}
 }
 
+// DrawChildren draws child layers IFF they are visible in ctx, and (need display or overlap rect)
+func (layer *BasicLayer) DrawChildren(ctx DrawingContext, mustDraw image.Rectangle) {
+	// Restrict mustDraw to be within ctx for performance; Does not affect correctness.
+	mustDraw = ctx.Bounds().Intersect(mustDraw)
+
+	for _, child := range layer.children {
+		if child.NeedsDisplay() || mustDraw.Overlaps(child.Frame()) {
+			if clipped := ctx.Clip(child.Frame()); clipped != nil {
+				child.Display(clipped)
+			}
+		} else {
+			// TEMP: Always delegate down the hierarchy, until we have global invalidated rects
+			if clipped := ctx.Clip(child.Frame()); clipped != nil {
+				child.DisplayIfNeeded(ctx)
+			}
+		}
+	}
+}
+
 func (layer *BasicLayer) DisplayIfNeeded(ctx DrawingContext) {
 	if layer.needsDisplay {
 		// When calling interface methods, call from outermost
 		// struct type so that embedding types can override methods.
 		layer.Layer().Display(ctx)
 	} else {
-		for _, child := range layer.children {
-			if clip := ctx.Clip(child.Frame()); clip != nil {
-				child.DisplayIfNeeded(clip)
-			}
-		}
+		// Pass empty rectangle so no child is forcibly redrawn;
+		// Only draws children with NeedsDisplay == true
+		layer.DrawChildren(ctx, image.Rectangle{})
 	}
 }
 
@@ -171,27 +188,16 @@ func (layer *BasicLayer) Draw(ctx DrawingContext) {
 
 // Display redraws the layer and its sublayers as needed, directly into ctx
 func (layer *BasicLayer) Display(ctx DrawingContext) {
-	// fmt.Printf("Drawing %T into %T %v\n", layer.identity, ctx, ctx.Bounds())
+	// fmt.Printf("Drawing %T into %T %v\n", layer.Self, ctx, ctx.Bounds())
 
-	layerRect := layer.Rectangle
 	// Eventually we'll need to convert into the destination coordinate space
-	// fmt.Printf("Drawing %T %v into %T %v\n", layer, layer, ctx, ctx)
-	if drawer, ok := layer.Self.(LayerDrawDelegate); ok {
+	if drawer, ok := layer.Layer().(LayerDrawDelegate); ok {
 		drawer.Draw(ctx)
-	} else {
-		layer.Draw(ctx)
 	}
 
 	// TODO: Let delegates decide what to mark dirty
-	ctx.SetDirty(layerRect)
-
-	for _, child := range layer.children {
-		if clip := ctx.Clip(child.Frame()); clip != nil {
-			if child.NeedsDisplay() || clip.Bounds().Overlaps(layerRect) {
-				child.Display(clip)
-			}
-		}
-	}
-
+	ctx.SetDirty(layer.Rectangle)
+	// Redraw all visible children
+	layer.DrawChildren(ctx, layer.Rectangle)
 	layer.needsDisplay = false
 }
