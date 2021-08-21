@@ -17,7 +17,7 @@ type Background struct {
 func (b *Background) Init(frame image.Rectangle, brightness int) {
 	b.SetFrame(frame)
 	b.Brightness = brightness
-	b.Delegate = b
+	b.Self = b
 }
 
 func (b *Background) Draw(ctx ui.DrawingContext) {

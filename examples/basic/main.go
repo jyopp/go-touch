@@ -33,15 +33,10 @@ var (
 	statusText = &ui.TextLayer{}
 )
 
-func setStatusText(text string) {
-	statusText.Text = text
-	statusArea.SetNeedsDisplay()
-}
-
 func downloadBackground(button *ui.Button) {
 	button.SetDisabled(true)
 	button.SetNeedsDisplay()
-	setStatusText("Downloading Wallpaper Image…")
+	statusText.SetText("Downloading Wallpaper Image…")
 	events.RequestDisplayUpdate()
 
 	const url = "https://news-cdn.softpedia.com/images/news2/here-are-all-iphone-and-mac-wallpapers-ever-released-by-apple-528707-3.jpg"
@@ -51,12 +46,12 @@ func downloadBackground(button *ui.Button) {
 			imageLayer := &ui.ImageLayer{}
 			imageLayer.Init(background.Bounds(), wallpaper)
 			background.InsertChild(imageLayer, 0)
-			setStatusText("Loaded Wallpaper")
+			statusText.SetText("Loaded Wallpaper")
 		} else {
-			setStatusText("Decode Error: " + err.Error())
+			statusText.SetText("Decode Error: " + err.Error())
 		}
 	} else {
-		setStatusText("HTTP Error: " + err.Error())
+		statusText.SetText("HTTP Error: " + err.Error())
 	}
 	events.RequestDisplayUpdate()
 }

@@ -28,14 +28,14 @@ type ControlDelegate interface {
 func (c *ControlLayer) SetState(state ControlStateMask) {
 	if state != c.State {
 		c.State = state
-		if del, ok := c.Delegate.(ControlDelegate); ok {
+		if del, ok := c.Self.(ControlDelegate); ok {
 			del.StateDidChange()
 		}
 	}
 }
 
 func (c *ControlLayer) TriggerAction(action ControlAction) {
-	if del, ok := c.Delegate.(ControlDelegate); ok {
+	if del, ok := c.Self.(ControlDelegate); ok {
 		del.HandleAction(action)
 	}
 }

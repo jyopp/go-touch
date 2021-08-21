@@ -19,11 +19,17 @@ func (tl *TextLayer) Init(frame image.Rectangle, fontname string, fontsize float
 	tl.SetFont(fontname, fontsize)
 	tl.Color = color.Black
 	tl.Gravity = GravityLeft
-	tl.Delegate = tl
+	tl.Self = tl
 }
 
 func (tl *TextLayer) SetFont(name string, size float64) {
 	tl.textFont = SharedFont(name, size)
+	tl.SetNeedsDisplay()
+}
+
+func (tl *TextLayer) SetText(text string) {
+	tl.Text = text
+	tl.SetNeedsDisplay()
 }
 
 func (tl *TextLayer) Draw(ctx DrawingContext) {

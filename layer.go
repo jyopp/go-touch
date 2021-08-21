@@ -20,7 +20,11 @@ type Layer interface {
 
 	HitTest(TouchEvent) LayerTouchDelegate
 
-	// TODO: Add IsOpaque()
+	Parent() Layer
+	SetParent(Layer)
+
+	// TODO/WIP: Add IsOpaque()
+	IsOpaque() bool
 	// In a pre-rendering phase, collect the UNION of all child
 	// frames that need to be displayed with DrawingMode draw.Copy;
 	// In the rendering phase, draw dirty views in the global context,
@@ -45,10 +49,19 @@ type BasicLayer struct {
 	image.Rectangle
 	Radius     int
 	Background color.Color
-	Delegate   interface{}
+	Self       Layer
 
+	parent       Layer
 	children     []Layer
 	needsDisplay bool
+}
+
+// Layer returns a layer interface to the outermost struct associated with this layer.
+func (layer *BasicLayer) Layer() Layer {
+	if layer.Self != nil {
+		return layer.Self
+	}
+	return layer
 }
 
 func (layer *BasicLayer) Frame() image.Rectangle {
@@ -64,6 +77,7 @@ func (layer *BasicLayer) SetFrame(frame image.Rectangle) {
 }
 
 func (layer *BasicLayer) AddChild(child Layer) {
+	child.SetParent(layer.Layer())
 	layer.children = append(layer.children, child)
 }
 
@@ -75,8 +89,11 @@ func (layer *BasicLayer) InsertChild(child Layer, index int) {
 	} else {
 		layer.children = append(layer.children, child)
 	}
-	for _, child := range layer.children[index:] {
-		child.SetNeedsDisplay()
+	rect := child.Frame()
+	for _, other := range layer.children[index:] {
+		if other.Frame().Overlaps(rect) {
+			child.SetNeedsDisplay()
+		}
 	}
 }
 
@@ -87,11 +104,28 @@ func (layer *BasicLayer) HitTest(event TouchEvent) LayerTouchDelegate {
 		}
 	}
 	if event.Pressed && event.In(layer.Rectangle) {
-		if interactor, ok := layer.Delegate.(LayerTouchDelegate); ok {
+		if interactor, ok := layer.Self.(LayerTouchDelegate); ok {
 			return interactor
 		}
 	}
 	return nil
+}
+
+func (layer *BasicLayer) IsOpaque() bool {
+	if layer.Background != nil {
+		_, _, _, a := layer.Background.RGBA()
+		return a == 0xFFFF
+	}
+	return false
+}
+
+func (layer *BasicLayer) Parent() Layer {
+	return layer.parent
+}
+
+func (layer *BasicLayer) SetParent(parent Layer) {
+	layer.SetNeedsDisplay()
+	layer.parent = parent
 }
 
 func (layer *BasicLayer) Children() []Layer {
@@ -104,17 +138,21 @@ func (layer *BasicLayer) NeedsDisplay() bool {
 
 func (layer *BasicLayer) SetNeedsDisplay() {
 	layer.needsDisplay = true
+	if parent := layer.parent; parent != nil {
+		// TODO: Just send the global rect to the Display.
+		// This should take the form NeedsRedraw(rect)
+		// Or perhaps Display.NeedsRedraw(layer)
+		if !layer.IsOpaque() {
+			parent.SetNeedsDisplay()
+		}
+	}
 }
 
 func (layer *BasicLayer) DisplayIfNeeded(ctx DrawingContext) {
 	if layer.needsDisplay {
 		// When calling interface methods, call from outermost
 		// struct type so that embedding types can override methods.
-		if l, ok := layer.Delegate.(Layer); ok {
-			l.Display(ctx)
-		} else {
-			layer.Display(ctx)
-		}
+		layer.Layer().Display(ctx)
 	} else {
 		for _, child := range layer.children {
 			if clip := ctx.Clip(child.Frame()); clip != nil {
@@ -138,7 +176,7 @@ func (layer *BasicLayer) Display(ctx DrawingContext) {
 	layerRect := layer.Rectangle
 	// Eventually we'll need to convert into the destination coordinate space
 	// fmt.Printf("Drawing %T %v into %T %v\n", layer, layer, ctx, ctx)
-	if drawer, ok := layer.Delegate.(LayerDrawDelegate); ok {
+	if drawer, ok := layer.Self.(LayerDrawDelegate); ok {
 		drawer.Draw(ctx)
 	} else {
 		layer.Draw(ctx)

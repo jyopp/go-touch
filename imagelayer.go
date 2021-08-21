@@ -15,7 +15,7 @@ func (i *ImageLayer) Init(frame image.Rectangle, image image.Image) {
 	i.SetFrame(frame)
 	i.Image = image
 	i.Gravity = GravityCenter
-	i.Delegate = i
+	i.Self = i
 }
 
 func (i *ImageLayer) Draw(ctx DrawingContext) {
