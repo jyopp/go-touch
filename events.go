@@ -87,9 +87,9 @@ func (es *EventStream) inputReadLoop() {
 	}
 }
 
-func (e *EventStream) DispatchLoop(d *Display, c context.Context) {
+func (e *EventStream) DispatchLoop(win *Window, c context.Context) {
 	// Draw the initial state of display
-	d.update()
+	win.update()
 	// Start sending events to the event channel
 	go e.inputReadLoop()
 
@@ -98,13 +98,13 @@ outer:
 	for {
 		select {
 		case event := <-e.Events:
-			d.Calibration.Adjust(&event)
+			win.Calibrate(&event)
 			if event.Pressed {
 				if eventTarget != nil {
 					eventTarget.UpdateTouch(event)
 				} else {
 					// Only when there is no current event target, hit test for one.
-					if eventTarget = d.HitTest(event); eventTarget != nil {
+					if eventTarget = win.HitTest(event); eventTarget != nil {
 						eventTarget.StartTouch(event)
 					}
 				}
@@ -117,7 +117,7 @@ outer:
 				}
 			}
 		case <-e.displayUpdates:
-			d.update()
+			win.update()
 		case <-c.Done():
 			break outer
 		}

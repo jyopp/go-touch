@@ -26,7 +26,7 @@ func init() {
 }
 
 var (
-	display    = &ui.Display{}
+	window     = &ui.Window{}
 	events     = &ui.EventStream{}
 	background = &Background{}
 	statusArea = &ui.BasicLayer{}
@@ -57,7 +57,7 @@ func downloadBackground(button *ui.Button) {
 }
 
 func buildUI() {
-	background.Init(display.Bounds(), 0xEE)
+	background.Init(window.Bounds(), 0xEE)
 
 	buttonArea := ui.Layout(background.Rectangle).InsetBy(10, 10)
 	// transparentWhite := color.RGBA{R: 0x99, G: 0x99, B: 0x99, A: 0x99}
@@ -100,7 +100,7 @@ func buildUI() {
 		}
 	}
 
-	display.AddLayer(background)
+	window.AddChild(background)
 }
 
 var (
@@ -120,8 +120,12 @@ func main() {
 	if framebuffer, err := os.OpenFile("/dev/fb1", os.O_RDWR, 0); err == nil {
 		// Width and height are screen's 'natural' dimensions.
 		// They will be swapped if needed based on the rotationAngle provided.
+		display := &ui.Display{}
 		display.Init(320, 480, *rotationAngle, framebuffer, touchCalibration)
 		defer framebuffer.Close()
+		defer display.Clear()
+
+		window.Init(display)
 	} else {
 		panic(err)
 	}
@@ -139,6 +143,5 @@ func main() {
 	signalCtx, signalCleanup := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer signalCleanup()
 
-	defer display.Clear()
-	events.DispatchLoop(display, signalCtx)
+	events.DispatchLoop(window, signalCtx)
 }

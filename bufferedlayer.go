@@ -7,7 +7,7 @@ import (
 
 type BufferedLayer struct {
 	BasicLayer
-	buffer *DisplayBuffer
+	Buffer
 }
 
 func (layer *BufferedLayer) SetFrame(frame image.Rectangle) {
@@ -15,20 +15,37 @@ func (layer *BufferedLayer) SetFrame(frame image.Rectangle) {
 		return
 	}
 	layer.BasicLayer.SetFrame(frame)
-	if layer.buffer == nil {
-		layer.buffer = NewDisplayBuffer(nil, frame)
-	} else {
-		layer.buffer.SetFrame(frame)
-	}
+	layer.Buffer.SetFrame(frame)
 }
 
+// Display redraws the layer and its children into the buffer.
+// Unlike other layers, ctx may be nil; In this case, the buffer is drawn
+// but not copied to a drawing context.
 func (layer *BufferedLayer) Display(ctx DrawingContext) {
-	buffer := layer.buffer
+	buffer := &layer.Buffer
 	if layer.needsDisplay {
 		layer.BasicLayer.Display(buffer)
 	}
 
-	// fmt.Printf("Compositing %T %v into %T %v\n", layer.Delegate, buffer.Rect, ctx, ctx.Bounds())
-	draw.Draw(ctx.Image(), buffer.Rect, buffer, buffer.Rect.Min, draw.Over)
-	ctx.SetDirty(buffer.Rect)
+	// BufferedLayer can draw its internal buffer without copying to a DrawingContext.
+	if ctx != nil {
+		// fmt.Printf("Compositing %T %v into %T %v\n", layer.Delegate, buffer.Rect, ctx, ctx.Bounds())
+		draw.Draw(ctx.Image(), buffer.Rect, buffer, buffer.Rect.Min, draw.Over)
+		ctx.SetDirty(buffer.Rect)
+	}
+}
+
+func (layer *BufferedLayer) DisplayIfNeeded(ctx DrawingContext) {
+	if layer.needsDisplay {
+		// When calling interface methods, call from outermost
+		// struct type so that embedding types can override methods.
+		layer.Layer().Display(ctx)
+	} else {
+		for _, child := range layer.children {
+			// Draw children into the buffer
+			if clip := layer.Buffer.Clip(child.Frame()); clip != nil {
+				child.DisplayIfNeeded(clip)
+			}
+		}
+	}
 }

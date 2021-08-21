@@ -6,57 +6,52 @@ import (
 	"image/draw"
 )
 
-// DisplayBuffer holds a high-color RGBA image buffer used for
+// Buffer holds a high-color RGBA image buffer used for
 // compositing before the framebuffer is written to.
-// DisplayBuffer is required for compositing with transparency.
-type DisplayBuffer struct {
+// Buffer is required for compositing with transparency.
+type Buffer struct {
 	*image.RGBA
-	Display   *Display
-	isClipped bool
+	ctx ClippingContext
 }
 
-func NewDisplayBuffer(display *Display, frame image.Rectangle) *DisplayBuffer {
-	return &DisplayBuffer{
-		RGBA:    image.NewRGBA(frame),
-		Display: display,
-	}
+type ClippingContext interface {
+	SetDirty(rect image.Rectangle)
 }
 
-func (b *DisplayBuffer) Image() *image.RGBA {
+func (b *Buffer) Image() *image.RGBA {
 	return b.RGBA
 }
 
-func (b *DisplayBuffer) Bounds() image.Rectangle {
+func (b *Buffer) Bounds() image.Rectangle {
 	return b.Rect
 }
 
 // Reset resets every pixel in the buffer as efficiently as possible.
-func (b *DisplayBuffer) Reset(c color.Color) {
+func (b *Buffer) Reset(c color.Color) {
 	// TODO: support clipped contexts with a separate codepath
 	rgba := color.RGBAModel.Convert(c).(color.RGBA)
 	bytesFill(b.Pix, []byte{rgba.R, rgba.G, rgba.B, rgba.A})
 }
 
 // Set the buffer's frame. Returns true if the image data was reinitialized.
-func (b *DisplayBuffer) SetFrame(frame image.Rectangle) bool {
-	if frame.Size().Eq(b.Rect.Size()) {
+func (b *Buffer) SetFrame(frame image.Rectangle) bool {
+	if b.RGBA != nil && frame.Size().Eq(b.Rect.Size()) {
 		b.Rect = frame
 		return false
 	} else {
 		b.RGBA = image.NewRGBA(frame)
-		b.isClipped = false
 		return true
 	}
 }
 
-func (b *DisplayBuffer) GetRow(y int) []byte {
+func (b *Buffer) GetRow(y int) []byte {
 	// Calculate our own pixel offset so we can truncate the row
 	left := b.PixOffset(b.Rect.Min.X, y)
 	right := b.PixOffset(b.Rect.Max.X, y)
 	return b.Pix[left:right:right]
 }
 
-func (b *DisplayBuffer) DrawRow(row []byte, x, y int, op draw.Op) {
+func (b *Buffer) DrawRow(row []byte, x, y int, op draw.Op) {
 	// Bounds-check and adjust before copying pixel data
 	min, max := b.Rect.Min, b.Rect.Max
 	if y < min.Y {
@@ -108,13 +103,13 @@ func (b *DisplayBuffer) DrawRow(row []byte, x, y int, op draw.Op) {
 
 // Marks a rect as needing to be drawn to the display.
 // If the buffer is not associated with a display, does nothing.
-func (b *DisplayBuffer) SetDirty(rect image.Rectangle) {
-	if b.Display != nil {
-		b.Display.SetDirty(rect.Intersect(b.Rect))
+func (b *Buffer) SetDirty(rect image.Rectangle) {
+	if b.ctx != nil {
+		b.ctx.SetDirty(rect)
 	}
 }
 
-func (b *DisplayBuffer) Clip(rect image.Rectangle) DrawingContext {
+func (b *Buffer) Clip(rect image.Rectangle) DrawingContext {
 	rect = rect.Intersect(b.Rect)
 	if rect.Empty() {
 		return nil
@@ -122,16 +117,15 @@ func (b *DisplayBuffer) Clip(rect image.Rectangle) DrawingContext {
 
 	// TODO: Information about rects with negative origin
 	// values could be lost here, and may need special treatment.
-	return &DisplayBuffer{
-		RGBA:      b.SubImage(rect).(*image.RGBA),
-		Display:   b.Display,
-		isClipped: true,
+	return &Buffer{
+		RGBA: b.SubImage(rect).(*image.RGBA),
+		ctx:  b.ctx,
 	}
 }
 
-func (b *DisplayBuffer) Fill(rect image.Rectangle, c color.Color, radius int) {
+func (b *Buffer) Fill(rect image.Rectangle, c color.Color, radius int) {
 	mask := CornerMask{rect, radius}
-	if !b.isClipped && b.Rect.In(rect) {
+	if b.ctx == nil && rect.Eq(b.Rect) {
 		// Fastest path; Specifically for the root view of a buffered layer
 		b.Reset(c)
 		mask.EraseCorners(b)

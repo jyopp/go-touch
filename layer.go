@@ -141,7 +141,7 @@ func (layer *BasicLayer) SetNeedsDisplay() {
 	if parent := layer.parent; parent != nil {
 		// TODO: Just send the global rect to the Display.
 		// This should take the form NeedsRedraw(rect)
-		// Or perhaps Display.NeedsRedraw(layer)
+		// Or perhaps Display.NeedsRedraw(layer) / Display.WillMove(layer)
 		if !layer.IsOpaque() {
 			parent.SetNeedsDisplay()
 		}
