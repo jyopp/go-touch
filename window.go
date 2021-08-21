@@ -36,7 +36,7 @@ func (w *Window) update() {
 	// Don't delegate to Flush because we're dumping diagnostic logs...
 	w.dirty.Reduce()
 	for _, rect := range w.dirty.Rects {
-		w.display.flush(w.Buffer.SubImage(rect).(*image.RGBA))
+		w.display.render(w.Buffer.SubImage(rect).(*image.RGBA))
 	}
 
 	if time.Since(start).Milliseconds() > 0 {
@@ -75,6 +75,6 @@ func (w *Window) SetDirty(rect image.Rectangle) {
 func (w *Window) Redraw() {
 	w.Buffer.Reset(color.RGBA{})
 	w.BufferedLayer.Display(nil)
-	w.display.flush(w.Buffer.RGBA)
+	w.display.render(w.Buffer.RGBA)
 	w.dirty.Clear()
 }

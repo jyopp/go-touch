@@ -68,7 +68,7 @@ func (d *Display) Clear() {
 	}
 }
 
-func (d *Display) flush(buf *image.RGBA) {
+func (d *Display) render(buf *image.RGBA) {
 	rect := buf.Rect
 	if rect.Empty() {
 		// Nothing to draw

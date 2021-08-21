@@ -41,6 +41,7 @@ func (rl *RegionList) shouldMerge(r1, r2 image.Rectangle) bool {
 
 // Reduce performs a best-effort to coalesce and remove overlapping rectangles
 // by covering them with fewer, larger rectangles.
+// Upon return, the list is guaranteed not to contain any overlapping rectangles.
 // Returns the number of nonempty rectangles in the list after the reduction.
 func (rl *RegionList) Reduce() int {
 	rects := rl.Rects

@@ -2,7 +2,6 @@ package fbui
 
 import (
 	"image"
-	"image/draw"
 )
 
 type BufferedLayer struct {
@@ -27,11 +26,9 @@ func (layer *BufferedLayer) Display(ctx DrawingContext) {
 		layer.BasicLayer.Display(buffer)
 	}
 
-	// BufferedLayer can draw its internal buffer without copying to a DrawingContext.
 	if ctx != nil {
-		// fmt.Printf("Compositing %T %v into %T %v\n", layer.Delegate, buffer.Rect, ctx, ctx.Bounds())
-		draw.Draw(ctx.Image(), buffer.Rect, buffer, buffer.Rect.Min, draw.Over)
-		ctx.SetDirty(buffer.Rect)
+		buffer.SetDirty(ctx.Bounds())
+		buffer.Flush(ctx)
 	}
 }
 
@@ -46,6 +43,7 @@ func (layer *BufferedLayer) DisplayIfNeeded(ctx DrawingContext) {
 			if clip := layer.Buffer.Clip(child.Frame()); clip != nil {
 				child.DisplayIfNeeded(clip)
 			}
+			layer.Buffer.Flush(ctx)
 		}
 	}
 }
