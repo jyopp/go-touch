@@ -11,11 +11,8 @@ import (
 // Buffer is required for compositing with transparency.
 type Buffer struct {
 	*image.RGBA
-	ctx ClippingContext
-}
-
-type ClippingContext interface {
-	SetDirty(rect image.Rectangle)
+	parent *Buffer
+	dirty  RegionList
 }
 
 func (b *Buffer) Image() *image.RGBA {
@@ -31,6 +28,7 @@ func (b *Buffer) Reset(c color.Color) {
 	// TODO: support clipped contexts with a separate codepath
 	rgba := color.RGBAModel.Convert(c).(color.RGBA)
 	bytesFill(b.Pix, []byte{rgba.R, rgba.G, rgba.B, rgba.A})
+	b.dirty.AddRect(b.Rect)
 }
 
 // Set the buffer's frame. Returns true if the image data was reinitialized.
@@ -101,31 +99,30 @@ func (b *Buffer) DrawRow(row []byte, x, y int, op draw.Op) {
 	}
 }
 
-// Marks a rect as needing to be drawn to the display.
-// If the buffer is not associated with a display, does nothing.
 func (b *Buffer) SetDirty(rect image.Rectangle) {
-	if b.ctx != nil {
-		b.ctx.SetDirty(rect)
+	// Only add dirty rects to root buffers
+	for b.parent != nil {
+		b = b.parent
 	}
+	b.dirty.AddRect(rect)
 }
 
 func (b *Buffer) Clip(rect image.Rectangle) DrawingContext {
-	rect = rect.Intersect(b.Rect)
-	if rect.Empty() {
+	if !rect.Overlaps(b.Rect) {
 		return nil
 	}
 
 	// TODO: Information about rects with negative origin
 	// values could be lost here, and may need special treatment.
 	return &Buffer{
-		RGBA: b.SubImage(rect).(*image.RGBA),
-		ctx:  b.ctx,
+		RGBA:   b.SubImage(rect).(*image.RGBA),
+		parent: b,
 	}
 }
 
 func (b *Buffer) Fill(rect image.Rectangle, c color.Color, radius int) {
 	mask := CornerMask{rect, radius}
-	if b.ctx == nil && rect.Eq(b.Rect) {
+	if b.parent == nil && rect.Eq(b.Rect) {
 		// Fastest path; Specifically for the root view of a buffered layer
 		b.Reset(c)
 		mask.EraseCorners(b)

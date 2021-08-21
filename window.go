@@ -12,12 +12,10 @@ import (
 type Window struct {
 	BufferedLayer
 	display *Display
-	dirty   RegionList
 }
 
 func (w *Window) Init(display *Display) {
 	w.SetFrame(display.Bounds())
-	w.Buffer.ctx = w
 	w.Self = w
 	w.display = display
 }
