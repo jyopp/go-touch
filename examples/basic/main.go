@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"image"
 	"image/color"
 	"image/jpeg"
 	"net/http"
@@ -58,17 +57,17 @@ func buildUI() {
 	background.Init(window.Bounds(), 0xEE)
 
 	buttonArea := ui.Layout(background.Rectangle).InsetBy(10, 10)
-	// transparentWhite := color.RGBA{R: 0x99, G: 0x99, B: 0x99, A: 0x99}
+	transparentWhite := color.RGBA{R: 0x99, G: 0x99, B: 0x99, A: 0x99}
 
 	statusArea.SetFrame(buttonArea.Slice(40, 10, ui.FromBottom).Rectangle)
-	statusArea.Background = color.White
+	statusArea.Background = transparentWhite
 	statusArea.Radius = 5
 	background.AddChild(statusArea)
 
-	statusText.Init(statusArea.Rectangle, DefaultBoldFont, 11.0)
+	statusTextRect := ui.Layout(statusArea.Rectangle).InsetBy(10, 5).Rectangle
+	statusText.Init(statusTextRect, DefaultBoldFont, 11.0)
 	statusText.Text = "Status Text Test"
 	statusText.Color = color.Gray{0x33}
-	statusText.Padding = image.Point{X: 10, Y: 5}
 	statusArea.AddChild(statusText)
 
 	icon, _ := Resources.ReadPNG("chevron-down.png")

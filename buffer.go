@@ -113,6 +113,10 @@ func (b *Buffer) DrawRow(row []byte, x, y int, op draw.Op) {
 }
 
 func (b *Buffer) SetDirty(rect image.Rectangle) {
+	rect = rect.Intersect(b.Rect)
+	if rect.Empty() {
+		return
+	}
 	// Only add dirty rects to root buffers
 	for b.parent != nil {
 		b = b.parent

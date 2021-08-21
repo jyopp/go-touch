@@ -31,7 +31,7 @@ func (b *Button) StateDidChange() {
 		b.Background = color.RGBA{R: 0xBB, G: 0xBB, B: 0xBB, A: 0xDD}
 		b.Label.Color = color.Gray{0x77}
 	} else if b.IsHighlighted() {
-		b.Background = color.RGBA{R: 0x66, G: 0x99, B: 0xCC, A: 0xFF}
+		b.Background = color.RGBA{R: 0x66, G: 0x99, B: 0xCC, A: 0xCC}
 		b.Label.Color = color.White
 	} else {
 		b.Background = color.RGBA{R: 0xFF, G: 0xFE, B: 0xFC, A: 0xFF}
