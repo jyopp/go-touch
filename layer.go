@@ -147,10 +147,46 @@ func (layer *BasicLayer) DrawChildren(ctx DrawingContext) {
 	}
 }
 
+// Winnow removes all possible areas covered by opaque children from the given rectangle.
+func (layer *BasicLayer) Winnow(rect image.Rectangle) image.Rectangle {
+	for _, child := range layer.children {
+		if child.IsOpaque() {
+			intersect := child.Frame().Intersect(rect)
+			// Check each edge of bounds and attempt to trim it.
+			if intersect.Min == rect.Min {
+				// Can we cut pixels from left?
+				if intersect.Max.Y == rect.Max.Y {
+					rect.Min.X = intersect.Max.X
+				}
+				// Can we cut pixels from top?
+				if intersect.Max.X == rect.Max.X {
+					rect.Min.Y = intersect.Max.Y
+				}
+			}
+			if intersect.Max == rect.Max {
+				// Can we cut pixels from right?
+				if intersect.Min.Y == rect.Min.Y {
+					rect.Max.X = intersect.Min.X
+				}
+				// Can we cut pixels from bottom?
+				if intersect.Min.X == rect.Min.X {
+					rect.Max.Y = intersect.Min.Y
+				}
+			}
+			if rect.Empty() {
+				return image.Rectangle{}
+			}
+		}
+	}
+	return rect
+}
+
 // For delegation of default drawing behavior (Background / roundrect)
 func (layer *BasicLayer) DrawIn(ctx DrawingContext) {
 	if layer.Background != nil {
-		ctx.Fill(layer.Rectangle, layer.Background, layer.Radius)
+		if rect := layer.Winnow(ctx.Bounds()); !rect.Empty() {
+			ctx.Clip(rect).Fill(layer.Rectangle, layer.Background, layer.Radius)
+		}
 	}
 	layer.DrawChildren(ctx)
 }

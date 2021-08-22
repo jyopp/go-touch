@@ -21,7 +21,7 @@ func (b *Background) Init(frame image.Rectangle, brightness int) {
 }
 
 func (b *Background) DrawIn(ctx ui.DrawingContext) {
-	bounds := b.Rectangle.Intersect(ctx.Bounds())
+	bounds := b.Winnow(ctx.Bounds())
 	bright := b.Brightness
 
 	var c color.RGBA
