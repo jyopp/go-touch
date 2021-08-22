@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-// This file contains methods for invalidating and drawing views.
-
 type Window struct {
 	BufferedLayer
 	display  *Display

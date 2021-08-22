@@ -24,13 +24,11 @@ func (b *Buffer) Bounds() image.Rectangle {
 }
 
 func (b *Buffer) IsAncestor(ctx DrawingContext) bool {
-	other, ok := ctx.(*Buffer)
-	if !ok {
-		return false
-	}
-	for ; other != nil; other = other.parent {
-		if other == b {
-			return true
+	if other, ok := ctx.(*Buffer); ok {
+		for ; other != nil; other = other.parent {
+			if other == b {
+				return true
+			}
 		}
 	}
 	return false
@@ -55,13 +53,7 @@ func (b *Buffer) SetFrame(frame image.Rectangle) bool {
 	}
 }
 
-func (b *Buffer) GetRow(y int) []byte {
-	// Calculate our own pixel offset so we can truncate the row
-	left := b.PixOffset(b.Rect.Min.X, y)
-	right := b.PixOffset(b.Rect.Max.X, y)
-	return b.Pix[left:right:right]
-}
-
+// DrawRow draws a single line of RGBA pixels at the given coordinates using op.
 func (b *Buffer) DrawRow(row []byte, x, y int, op draw.Op) {
 	// Bounds-check and adjust before copying pixel data
 	min, max := b.Rect.Min, b.Rect.Max
@@ -101,7 +93,7 @@ func (b *Buffer) DrawRow(row []byte, x, y int, op draw.Op) {
 			dPxl[1] = sPxl[1]
 			dPxl[2] = sPxl[2]
 			dPxl[3] = sPxl[3]
-		} else {
+		} else if sA > 0 {
 			// Source alpha is premultiplied, get its inverse for blending.
 			dA := uint32(^sA)
 			dPxl[0] = sPxl[0] + byte((dA*uint32(dPxl[0]))>>8)

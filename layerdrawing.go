@@ -12,8 +12,6 @@ type DrawingContext interface {
 	Image() *image.RGBA
 	Bounds() image.Rectangle
 
-	// GetRow returns a slice of bytes with pixel data for one line of the raster.
-	GetRow(y int) []byte
 	// PutRow writes a row of pixel data into the receiver at (x, y)
 	// The receiver is responsible for bounds checking:
 	// x and y may be negative, and x, y, and y + len(row) may exceed receiver's dimensions
