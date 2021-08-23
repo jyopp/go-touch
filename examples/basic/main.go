@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"sync"
 
 	ui "github.com/jyopp/fbui"
@@ -112,7 +113,20 @@ var (
 
 func main() {
 	rotationAngle := flag.Int("rotation", 0, "Rotation of the display")
+	cpuprofile := flag.String("cpuprofile", "", "Enable CPU Profiling to the given file")
 	flag.Parse()
+
+	if *cpuprofile != "" {
+		profileOut, err := os.Create(*cpuprofile)
+		if err == nil {
+			defer profileOut.Close()
+			err = pprof.StartCPUProfile(profileOut)
+		}
+		if err != nil {
+			panic(err)
+		}
+		defer pprof.StopCPUProfile()
+	}
 
 	if framebuffer, err := os.OpenFile("/dev/fb1", os.O_RDWR, 0); err == nil {
 		// Width and height are screen's 'natural' dimensions.
