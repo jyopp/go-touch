@@ -5,6 +5,7 @@ import (
 	"embed"
 	"image"
 
+	"image/draw"
 	"image/png"
 
 	"github.com/jyopp/fbui"
@@ -25,7 +26,17 @@ func (r *resourceReader) ReadPNG(name string) (image.Image, error) {
 	return png.Decode(bytes.NewReader(data))
 }
 
-// RegisterFont registers a truetype font for on-demand loding
+func (r *resourceReader) ReadPNGTemplate(name string) (*image.Alpha, error) {
+	orig, err := r.ReadPNG(name)
+	if err != nil {
+		return nil, err
+	}
+	alpha := image.NewAlpha(orig.Bounds())
+	draw.Draw(alpha, alpha.Rect, orig, orig.Bounds().Min, draw.Src)
+	return alpha, nil
+}
+
+// RegisterFont registers a truetype font for on-demand loading
 func (r *resourceReader) RegisterFont(name string) {
 	fbui.RegisterTTF(name, func() []byte {
 		data, _ := _resourceFiles.ReadFile("fonts/" + name)

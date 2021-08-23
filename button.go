@@ -32,12 +32,25 @@ func (b *Button) StateDidChange() {
 		b.Label.Color = color.Gray{0x77}
 	} else if b.IsHighlighted() {
 		b.Background = color.RGBA{R: 0x66, G: 0x99, B: 0xCC, A: 0xCC}
-		b.Label.Color = color.White
+		b.Label.Color = color.Gray{0xFF}
 	} else {
 		b.Background = color.RGBA{R: 0xFF, G: 0xFE, B: 0xFC, A: 0xFF}
-		b.Label.Color = color.Black
+		b.Label.Color = color.Gray{0x00}
+	}
+	// Ensure that Alpha-only images are drawn with foreground color,
+	// but full-color images are drawn as-is.
+	if _, isTemplate := b.Icon.Image.(*image.Alpha); isTemplate {
+		b.Icon.Tint = b.Label.Color
+	} else {
+		b.Icon.Tint = nil
 	}
 	b.Invalidate()
+}
+
+func (b *Button) SetParent(parent Layer) {
+	// Sort-of hack, to ensure we calculate the correct colors and states before being drawn
+	b.StateDidChange()
+	b.ControlLayer.SetParent(parent)
 }
 
 func (b *Button) HandleAction(action ControlAction) {

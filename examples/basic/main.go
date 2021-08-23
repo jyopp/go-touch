@@ -58,7 +58,7 @@ func buildUI() {
 	background.Init(window.Bounds(), 0xEE)
 
 	buttonArea := ui.Layout(background.Rectangle).InsetBy(10, 10)
-	transparentWhite := color.RGBA{R: 0x99, G: 0x99, B: 0x99, A: 0x99}
+	transparentWhite := color.RGBA{R: 0xBB, G: 0xBB, B: 0xBB, A: 0xBB}
 
 	statusArea.SetFrame(buttonArea.Slice(40, 10, ui.FromBottom).Rectangle)
 	statusArea.Background = transparentWhite
@@ -71,7 +71,7 @@ func buildUI() {
 	statusText.Color = color.Gray{0x33}
 	statusArea.AddChild(statusText)
 
-	icon, _ := Resources.ReadPNG("chevron-down.png")
+	icon, _ := Resources.ReadPNGTemplate("chevron-down.png")
 	for idx, rect := range buttonArea.Divide(2, 10, ui.FromTop) {
 		for idx2, rect := range rect.Divide(3, 10, ui.FromLeft) {
 			num := 3*idx + idx2
@@ -79,7 +79,7 @@ func buildUI() {
 			button.Init(rect.Rectangle, DefaultFont, 15.0)
 			if num == 0 {
 				button.Label.Text = "Wallpaper"
-				button.Icon.Image, _ = Resources.ReadPNG("hex-cluster.png")
+				button.Icon.Image, _ = Resources.ReadPNGTemplate("hex-cluster.png")
 				var once sync.Once
 				button.Actions[ui.ControlTapped] = func(button *ui.Button) {
 					once.Do(func() {
