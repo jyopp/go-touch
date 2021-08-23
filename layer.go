@@ -9,6 +9,7 @@ type Layer interface {
 	Children() []Layer
 	AddChild(Layer)
 	InsertChild(Layer, int)
+	RemoveChild(Layer)
 
 	Frame() image.Rectangle
 	SetFrame(frame image.Rectangle)
@@ -26,6 +27,7 @@ type Layer interface {
 
 	Parent() Layer
 	SetParent(Layer)
+	RemoveFromParent()
 
 	// TODO/WIP: Add IsOpaque()
 	IsOpaque() bool
@@ -44,6 +46,12 @@ type LayerTouchDelegate interface {
 	UpdateTouch(TouchEvent)
 	EndTouch(TouchEvent)
 }
+
+type touchBlocker struct{}
+
+func (tb touchBlocker) StartTouch(TouchEvent)  {}
+func (tb touchBlocker) UpdateTouch(TouchEvent) {}
+func (tb touchBlocker) EndTouch(TouchEvent)    {}
 
 type BasicLayer struct {
 	image.Rectangle
@@ -94,15 +102,30 @@ func (layer *BasicLayer) InsertChild(child Layer, index int) {
 	}
 }
 
+func (layer *BasicLayer) RemoveChild(child Layer) {
+	for idx := range layer.children {
+		if layer.children[idx] == child {
+			layer.children = append(layer.children[:idx], layer.children[idx+1:]...)
+			layer.Layer().InvalidateRect(child.Frame())
+			return
+		}
+	}
+}
+
 func (layer *BasicLayer) HitTest(event TouchEvent) LayerTouchDelegate {
-	for _, child := range layer.children {
-		if target := child.HitTest(event); target != nil {
+	for idx := len(layer.children); idx > 0; idx-- {
+		if target := layer.children[idx-1].HitTest(event); target != nil {
 			return target
 		}
 	}
 	if event.Pressed && event.In(layer.Rectangle) {
 		if interactor, ok := layer.Self.(LayerTouchDelegate); ok {
 			return interactor
+		}
+		// Visible views block touches by default
+		// TODO: More-explicit method of blocking or allowing touches
+		if layer.Background != nil {
+			return touchBlocker{}
 		}
 	}
 	return nil
@@ -123,6 +146,12 @@ func (layer *BasicLayer) Parent() Layer {
 func (layer *BasicLayer) SetParent(parent Layer) {
 	layer.parent = parent
 	layer.Invalidate()
+}
+
+func (layer *BasicLayer) RemoveFromParent() {
+	if layer.parent != nil {
+		layer.parent.RemoveChild(layer)
+	}
 }
 
 func (layer *BasicLayer) Children() []Layer {
