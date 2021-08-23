@@ -5,11 +5,18 @@ import (
 	"image/color"
 )
 
+type ButtonColors struct {
+	Background, Text, ImageTint color.Color
+}
+
 type Button struct {
 	ControlLayer
 	Label   TextLayer
 	Icon    ImageLayer
 	Actions [ControlActionsCount]func(*Button)
+	Colors  struct {
+		Normal, Highlighted, Disabled ButtonColors
+	}
 
 	Spacing int // Min. Distance between Icon and Label
 }
@@ -23,24 +30,39 @@ func (b *Button) Init(frame image.Rectangle, labelFont string, size float64) {
 	b.Icon.Init(image.Rectangle{}, nil)
 	b.children = []Layer{&b.Icon, &b.Label}
 	b.Self = b
+
+	// Default Colors
+	b.Colors.Disabled.Background = color.RGBA{R: 0xBB, G: 0xBB, B: 0xBB, A: 0xDD}
+	b.Colors.Disabled.Text = color.Gray{0x77}
+
+	b.Colors.Highlighted.Background = color.RGBA{R: 0x66, G: 0x99, B: 0xCC, A: 0xCC}
+	b.Colors.Highlighted.Text = color.Gray{0xFF}
+
+	b.Colors.Normal.Background = color.RGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}
+	b.Colors.Normal.Text = color.Gray{0x00}
+
 	b.StateDidChange()
 }
 
 func (b *Button) StateDidChange() {
+	var colors *ButtonColors
 	if b.IsDisabled() {
-		b.Background = color.RGBA{R: 0xBB, G: 0xBB, B: 0xBB, A: 0xDD}
-		b.Label.Color = color.Gray{0x77}
+		colors = &b.Colors.Disabled
 	} else if b.IsHighlighted() {
-		b.Background = color.RGBA{R: 0x66, G: 0x99, B: 0xCC, A: 0xCC}
-		b.Label.Color = color.Gray{0xFF}
+		colors = &b.Colors.Highlighted
 	} else {
-		b.Background = color.RGBA{R: 0xFF, G: 0xFE, B: 0xFC, A: 0xFF}
-		b.Label.Color = color.Gray{0x00}
+		colors = &b.Colors.Normal
 	}
+	b.Background = colors.Background
+	b.Label.Color = colors.Text
 	// Ensure that Alpha-only images are drawn with foreground color,
 	// but full-color images are drawn as-is.
 	if _, isTemplate := b.Icon.Image.(*image.Alpha); isTemplate {
-		b.Icon.Tint = b.Label.Color
+		if colors.ImageTint != nil {
+			b.Icon.Tint = colors.ImageTint
+		} else {
+			b.Icon.Tint = colors.Text
+		}
 	} else {
 		b.Icon.Tint = nil
 	}
