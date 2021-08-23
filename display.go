@@ -7,8 +7,6 @@ import (
 	"syscall"
 )
 
-// Eventually, perhaps Display should fully conform to LayerDrawing...
-
 type Display struct {
 	Size        image.Point
 	FrameBuffer []byte

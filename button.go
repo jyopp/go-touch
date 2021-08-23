@@ -59,8 +59,7 @@ func (b *Button) HandleAction(action ControlAction) {
 	}
 }
 
-// Need some sort of prepare phase for drawing
-func (b *Button) DrawIn(ctx DrawingContext) {
+func (b *Button) Render(ctx DrawingContext) {
 	// "Layout Sublayers"
 	layout := LayoutRect{b.Rectangle.Inset(8)}
 	if img := b.Icon.Image; img != nil {
@@ -68,6 +67,5 @@ func (b *Button) DrawIn(ctx DrawingContext) {
 		b.Icon.SetFrame(imgRect)
 	}
 	b.Label.SetFrame(layout.Rectangle)
-
-	b.BasicLayer.DrawIn(ctx)
+	b.BasicLayer.Render(ctx)
 }

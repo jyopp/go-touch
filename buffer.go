@@ -117,8 +117,10 @@ func (b *Buffer) SetDirty(rect image.Rectangle) {
 }
 
 func (b *Buffer) Clip(rect image.Rectangle) DrawingContext {
-	if !rect.Overlaps(b.Rect) {
-		return nil
+	if b.Rect.In(rect) {
+		// We frequently draw just leaf nodes, in which case ctx's size never needs shrinking.
+		// Avoid allocating anything new in such a case.
+		return b
 	}
 
 	// TODO: Information about rects with negative origin

@@ -12,11 +12,10 @@ type BufferedLayer struct {
 }
 
 func (layer *BufferedLayer) SetFrame(frame image.Rectangle) {
-	if layer.Eq(frame) {
-		return
+	if !layer.Eq(frame) {
+		layer.BasicLayer.SetFrame(frame)
+		layer.Buffer.SetFrame(frame)
 	}
-	layer.BasicLayer.SetFrame(frame)
-	layer.Buffer.SetFrame(frame)
 }
 
 func (layer *BufferedLayer) InvalidateRect(rect image.Rectangle) {
@@ -24,28 +23,18 @@ func (layer *BufferedLayer) InvalidateRect(rect image.Rectangle) {
 	layer.BasicLayer.InvalidateRect(rect)
 }
 
-// Render draws and composites any invalid regions to the buffer
-func (layer *BufferedLayer) Render() {
+func (layer *BufferedLayer) RenderBuffer() {
+	buffer := &layer.Buffer
 	for _, rect := range layer.invalid.Dequeue() {
-		layer.Layer().DrawIn(layer.Buffer.Clip(rect))
+		layer.BasicLayer.Render(buffer.Clip(rect))
 	}
 }
 
-// DrawIn redraws the layer and its children into the buffer.
-// Unlike other layers, ctx may be nil; In this case, the buffer is drawn
-// but not copied to a drawing context.
-func (layer *BufferedLayer) DrawIn(ctx DrawingContext) {
-	// Delegate when drawing into our buffer
-	if layer.Buffer.IsAncestor(ctx) {
-		layer.BasicLayer.DrawIn(ctx)
-		return
-	}
+// Render draws and composites any invalid regions to the buffer
+func (layer *BufferedLayer) Render(ctx DrawingContext) {
+	layer.RenderBuffer()
 
-	// When rendering to an external context, update the buffer and draw from it
-	layer.Render()
-
-	if ctx != nil {
-		rect := layer.Buffer.Bounds().Intersect(ctx.Bounds())
+	if rect := layer.Buffer.Rect.Intersect(ctx.Bounds()); !rect.Empty() {
 		draw.Draw(ctx.Image(), rect, layer.Buffer.RGBA, rect.Min, draw.Over)
 		ctx.SetDirty(rect)
 	}

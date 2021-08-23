@@ -41,7 +41,7 @@ func (w *Window) InvalidateRect(rect image.Rectangle) {
 // superset of all drawn rects is flushed to the display.
 func (w *Window) update() {
 	start := time.Now()
-	w.BufferedLayer.Render()
+	w.BufferedLayer.RenderBuffer()
 	w.checkRoundCorners()
 	drawn := time.Now()
 

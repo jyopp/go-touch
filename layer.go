@@ -15,6 +15,11 @@ type Layer interface {
 
 	Invalidate()
 	InvalidateRect(rect image.Rectangle)
+
+	// Render should render this layer and its subtree into ctx
+	Render(ctx DrawingContext)
+
+	// DrawIn should draw the parts of this layer that are visible in ctx
 	DrawIn(ctx DrawingContext)
 
 	HitTest(TouchEvent) LayerTouchDelegate
@@ -135,34 +140,31 @@ func (layer *BasicLayer) InvalidateRect(rect image.Rectangle) {
 }
 
 // DrawChildren draws child layers IFF they are visible in ctx, and (need display or overlap rect)
-func (layer *BasicLayer) DrawChildren(ctx DrawingContext) {
-	// Restrict mustDraw to be within ctx for performance; Does not affect correctness.
-	drawRect := ctx.Bounds()
-	for _, child := range layer.children {
-		if drawRect.Overlaps(child.Frame()) {
-			if clipped := ctx.Clip(child.Frame()); clipped != nil {
-				child.DrawIn(clipped)
-			}
-		}
-	}
-}
-
-// Winnow removes all possible areas covered by opaque children from the given rectangle.
-func (layer *BasicLayer) Winnow(rect image.Rectangle) image.Rectangle {
+func (layer *BasicLayer) Render(ctx DrawingContext) {
+	// Draw the smallest rect of this layer that is not occluded by opaque children
+	rect := ctx.Bounds()
 	for _, child := range layer.children {
 		if child.IsOpaque() {
 			rect = Winnow(rect, child.Frame())
 		}
 	}
-	return rect
+	// Draw this layer IFF there are pixels to be drawn.
+	if clipped := ctx.Clip(rect); !clipped.Bounds().Empty() {
+		layer.Layer().DrawIn(clipped)
+	}
+
+	// Render children (separate phase)
+	// TODO: Clip overlapping children of lower Z-order
+	for _, child := range layer.children {
+		if clipped := ctx.Clip(child.Frame()); !clipped.Bounds().Empty() {
+			child.Render(clipped)
+		}
+	}
 }
 
 // For delegation of default drawing behavior (Background / roundrect)
 func (layer *BasicLayer) DrawIn(ctx DrawingContext) {
 	if layer.Background != nil {
-		if rect := layer.Winnow(ctx.Bounds()); !rect.Empty() {
-			ctx.Clip(rect).Fill(layer.Rectangle, layer.Background, layer.Radius)
-		}
+		ctx.Fill(layer.Rectangle, layer.Background, layer.Radius)
 	}
-	layer.DrawChildren(ctx)
 }
