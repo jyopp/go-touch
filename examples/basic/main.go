@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"image"
 	"image/color"
 	"image/jpeg"
 	"log"
@@ -33,6 +34,42 @@ var (
 	statusArea = &ui.BasicLayer{}
 	statusText = &ui.TextLayer{}
 )
+
+func showSimpleAlert(message, buttontext string, done func()) {
+
+	layout := ui.Layout(ui.Layout(window.Rect).Aligned(image.Point{240, 180}, ui.GravityCenter))
+	wrapper := &ui.BasicLayer{}
+	wrapper.Background = color.RGBA{R: 0x00, G: 0x00, B: 0x00, A: 0x22}
+	wrapper.Radius = 8
+	wrapper.SetFrame(layout.Rectangle.Inset(-1))
+
+	alert := &ui.BasicLayer{}
+	alert.Background = color.White
+	alert.Radius = 7
+	alert.SetFrame(layout.Rectangle)
+
+	layout = layout.InsetBy(10, 10)
+
+	button := &ui.Button{}
+	button.Init(layout.Slice(48, 10, ui.FromBottom).Rectangle, DefaultBoldFont, 14.0)
+	button.Colors.Normal.Background = color.RGBA{R: 0xE0, G: 0xE0, B: 0xFF, A: 0xFF}
+	button.Colors.Normal.Text = color.Gray{0x44}
+	button.Label.SetText(buttontext)
+	button.Actions[ui.ControlTapped] = func(button *ui.Button) {
+		wrapper.RemoveFromParent()
+		done()
+	}
+
+	textLayer := &ui.TextLayer{}
+	textLayer.Init(layout.Rectangle, DefaultFont, 15.0)
+	textLayer.Gravity = ui.GravityCenter
+	textLayer.SetText(message)
+
+	alert.AddChild(textLayer)
+	alert.AddChild(button)
+	wrapper.AddChild(alert)
+	window.AddChild(wrapper)
+}
 
 func downloadBackground(button *ui.Button) {
 	button.SetDisabled(true)
@@ -88,11 +125,19 @@ func buildUI() {
 					})
 				}
 			} else {
-				button.Label.Text = fmt.Sprintf("Button %d", 2*idx+idx2)
+				button.Label.Text = fmt.Sprintf("Button %d", num)
 				button.Icon.Image = icon
 				button.Actions[ui.ControlTapped] = func(button *ui.Button) {
 					text := fmt.Sprintf("Tapped %s", button.Label.Text)
-					statusText.SetText(text)
+					if num%2 == 0 {
+						statusText.SetText(text)
+					} else {
+						// Prototype of an alert box
+						statusText.SetText("Showing Alert")
+						showSimpleAlert(text, "OK", func() {
+							statusText.SetText("Dismissed Alert")
+						})
+					}
 				}
 			}
 			background.AddChild(button)
