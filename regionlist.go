@@ -12,26 +12,12 @@ type RegionList struct {
 // SetDirty expands or appends a dirty rect to include all pixels in rect.
 func (rl *RegionList) AddRect(rect image.Rectangle) {
 	for idx, oldRect := range rl.Rects {
-		if rl.shouldMerge(rect, oldRect) {
-			rl.Rects[idx] = oldRect.Union(rect)
+		if merged := Merge(rect, oldRect); !merged.Empty() {
+			rl.Rects[idx] = merged
 			return
 		}
 	}
 	rl.Rects = append(rl.Rects, rect)
-}
-
-// TODO: This can be made much more complex, returning an array-of-rects
-// For example if r1.Intersect(r2).(Min,Max).Y == r2.(Min,Max).Y, the
-// intersecting part of r2 should be removed and the exclusion returned.
-func (rl *RegionList) shouldMerge(r1, r2 image.Rectangle) bool {
-	if !r1.Overlaps(r2) {
-		return false
-	} else if r1.Min.Y <= r2.Min.Y {
-		// r1.Min is above or at r2.Min
-		return r2.Max.Y <= r1.Min.Y
-	} else {
-		return r2.Max.Y >= r1.Max.Y
-	}
 }
 
 // Dequeue performs a best-effort to coalesce and remove overlapping rectangles
@@ -47,19 +33,20 @@ func (rl *RegionList) Dequeue() []image.Rectangle {
 	sort.Slice(rects, func(i, j int) bool {
 		return rects[i].Min.Y < rects[j].Min.Y
 	})
-	// Reduce all overlapping rects.
+	// Reduce all overlapping rects. Any overlap results in replacement with the Union.
 	// This is a heuristic, vulnerable to some worst-case patterns.
+	// Unnecessary areas may be added, but no area will be covered by multiple rects.
 	var newLength = len(rects)
-	rect1 := rects[0]
 	for idx := 1; idx < len(rects); idx++ {
-		rect2 := rects[idx]
-		if rect1.Overlaps(rect2) {
-			rect1 = rect1.Union(rect2)
-			rects[idx] = rect1
+		// TODO: Something with Merge/Disjoin here, but with sensitivity to whether
+		// fewer pixels can be drawn. Perhaps track different rects for drawing vs.
+		// flushing to the buffer. As is, Disjoin would break the guarantee that
+		// pixels cannot be covered twice, since we don't know which of the two
+		// reduced rects (or even both) might overlap a future rect.
+		if rects[idx].Overlaps(rects[idx-1]) {
+			rects[idx] = rects[idx].Union(rects[idx-1])
 			rects[idx-1] = image.Rectangle{}
 			newLength--
-		} else {
-			rect1 = rects[idx]
 		}
 	}
 	// Ensure all the empty rects are moved to the end

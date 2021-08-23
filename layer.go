@@ -151,31 +151,7 @@ func (layer *BasicLayer) DrawChildren(ctx DrawingContext) {
 func (layer *BasicLayer) Winnow(rect image.Rectangle) image.Rectangle {
 	for _, child := range layer.children {
 		if child.IsOpaque() {
-			intersect := child.Frame().Intersect(rect)
-			// Check each edge of bounds and attempt to trim it.
-			if intersect.Min == rect.Min {
-				// Can we cut pixels from left?
-				if intersect.Max.Y == rect.Max.Y {
-					rect.Min.X = intersect.Max.X
-				}
-				// Can we cut pixels from top?
-				if intersect.Max.X == rect.Max.X {
-					rect.Min.Y = intersect.Max.Y
-				}
-			}
-			if intersect.Max == rect.Max {
-				// Can we cut pixels from right?
-				if intersect.Min.Y == rect.Min.Y {
-					rect.Max.X = intersect.Min.X
-				}
-				// Can we cut pixels from bottom?
-				if intersect.Min.X == rect.Min.X {
-					rect.Max.Y = intersect.Min.Y
-				}
-			}
-			if rect.Empty() {
-				return image.Rectangle{}
-			}
+			rect = Winnow(rect, child.Frame())
 		}
 	}
 	return rect
