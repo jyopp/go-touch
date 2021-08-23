@@ -1,7 +1,6 @@
 package fbui
 
 import (
-	"context"
 	"encoding/binary"
 	"fmt"
 	"image"
@@ -77,41 +76,6 @@ func (es *EventStream) inputReadLoop() {
 			case ABS_PRESSURE:
 				currentEvent.Pressure = int(e.Value)
 			}
-		}
-	}
-}
-
-func (e *EventStream) DispatchLoop(win *Window, c context.Context) {
-	// Draw the initial state of display
-	win.update()
-	// Start sending events to the event channel
-	go e.inputReadLoop()
-
-	var eventTarget LayerTouchDelegate
-outer:
-	for {
-		select {
-		case event := <-e.Events:
-			win.Calibrate(&event)
-			if event.Pressed {
-				if eventTarget != nil {
-					eventTarget.UpdateTouch(event)
-				} else {
-					// Only when there is no current event target, hit test for one.
-					if eventTarget = win.HitTest(event); eventTarget != nil {
-						eventTarget.StartTouch(event)
-					}
-				}
-			} else {
-				if eventTarget != nil {
-					eventTarget.EndTouch(event)
-					eventTarget = nil
-				}
-			}
-		case <-win.redrawCh:
-			win.update()
-		case <-c.Done():
-			break outer
 		}
 	}
 }

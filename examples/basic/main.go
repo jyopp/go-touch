@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image/color"
 	"image/jpeg"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -154,5 +155,7 @@ func main() {
 	signalCtx, signalCleanup := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer signalCleanup()
 
-	events.DispatchLoop(window, signalCtx)
+	if err := ui.RunLoop(signalCtx, window, events); err != nil {
+		log.Fatal(err)
+	}
 }
