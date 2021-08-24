@@ -29,7 +29,7 @@ func (rt *RenderedText) SetFont(name string, size float64) {
 
 func (rt *RenderedText) Render() {
 	rect := image.Rectangle{
-		Max: rt.font.Measure(rt.Text, rt.MaxSize),
+		Max: rt.font.MeasureIn(rt.Text, rt.MaxSize),
 	}
 	rt.rendered = image.NewAlpha(rect)
 	rt.font.Draw(rt.rendered, rt.Text, rect, color.Alpha{0xFF})

@@ -110,22 +110,25 @@ func (f *Font) Init(name string, size float64) {
 	f.ctx = ctx
 }
 
-func (f *Font) Measure(text string, maxsize image.Point) image.Point {
+func (f *Font) Measure(text string) image.Point {
 	f.m.Lock()
 	defer f.m.Unlock()
 
-	size := image.Point{
+	return image.Point{
 		X: font.MeasureString(f.Face, text).Ceil(),
 		// Add 1px padding to the top; certain letters are clipped otherwise.
 		Y: (f.Metrics.Ascent + f.Metrics.Descent).Ceil() + 1,
 	}
+}
+
+func (f *Font) MeasureIn(text string, maxsize image.Point) image.Point {
+	size := f.Measure(text)
 	if size.X > maxsize.X {
 		size.X = maxsize.X
 	}
 	if size.Y > maxsize.Y {
 		size.Y = maxsize.Y
 	}
-	// println("Measured", text, "in", size.String())
 	return size
 }
 
