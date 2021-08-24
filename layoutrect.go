@@ -53,23 +53,22 @@ func (l *LayoutRect) Slice(size, pad int, dir LayoutDirection) LayoutRect {
 	return sliced
 }
 
-func (l *LayoutRect) Repeat(size, pad int, dir LayoutDirection) []LayoutRect {
-	remain := *l
+func (l LayoutRect) Repeat(size, pad int, dir LayoutDirection) []LayoutRect {
 	rects := []LayoutRect{}
 	switch dir {
 	case FromLeft, FromRight:
-		for remain.Dx() >= size {
-			rects = append(rects, remain.Slice(size, pad, dir))
+		for l.Dx() >= size {
+			rects = append(rects, l.Slice(size, pad, dir))
 		}
 	case FromTop, FromBottom:
-		for remain.Dy() >= size {
-			rects = append(rects, remain.Slice(size, pad, dir))
+		for l.Dy() >= size {
+			rects = append(rects, l.Slice(size, pad, dir))
 		}
 	}
 	return rects
 }
 
-func (l *LayoutRect) Divide(count, pad int, dir LayoutDirection) []LayoutRect {
+func (l LayoutRect) Divide(count, pad int, dir LayoutDirection) []LayoutRect {
 	var size int
 	switch dir {
 	case FromLeft, FromRight:
