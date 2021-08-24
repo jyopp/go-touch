@@ -5,13 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"image/color"
-	"image/jpeg"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"runtime/pprof"
-	"sync"
 
 	ui "github.com/jyopp/fbui"
 )
@@ -61,27 +58,6 @@ func showSimpleAlert(message, buttontext string, done func()) {
 	window.AddChild(alert)
 }
 
-func downloadBackground(button *ui.Button) {
-	button.SetDisabled(true)
-	button.Invalidate()
-	statusText.SetText("Downloading Wallpaper Image…")
-
-	const url = "https://news-cdn.softpedia.com/images/news2/here-are-all-iphone-and-mac-wallpapers-ever-released-by-apple-528707-3.jpg"
-	if resp, err := http.Get(url); err == nil {
-		defer resp.Body.Close()
-		if wallpaper, err := jpeg.Decode(resp.Body); err == nil {
-			imageLayer := &ui.ImageLayer{}
-			imageLayer.Init(background.Bounds(), wallpaper)
-			background.InsertChild(imageLayer, 0)
-			statusText.SetText("Loaded Wallpaper")
-		} else {
-			statusText.SetText("Decode Error: " + err.Error())
-		}
-	} else {
-		statusText.SetText("HTTP Error: " + err.Error())
-	}
-}
-
 func buildUI() {
 	background.Init(window.Bounds(), 0xEE)
 
@@ -101,35 +77,27 @@ func buildUI() {
 
 	icon, _ := Resources.ReadPNGTemplate("chevron-down.png")
 	for idx, rect := range buttonArea.Divide(2, 10, ui.FromTop) {
-		for idx2, rect := range rect.Divide(3, 10, ui.FromLeft) {
-			num := 3*idx + idx2
+		rowStart := 3 * idx
+		for idx, rect := range rect.Divide(3, 10, ui.FromLeft) {
+			num := rowStart + idx
+
 			button := &ui.Button{}
 			button.Init(rect.Rectangle, DefaultButtonFont, 15.0)
-			if num == 0 {
-				button.Label.Text = "Wallpaper"
-				button.Icon.Image, _ = Resources.ReadPNGTemplate("hex-cluster.png")
-				var once sync.Once
-				button.Actions[ui.ControlTapped] = func(button *ui.Button) {
-					once.Do(func() {
-						go downloadBackground(button)
+			button.Label.Text = fmt.Sprintf("Button %d", num)
+			button.Icon.Image = icon
+			button.Actions[ui.ControlTapped] = func(button *ui.Button) {
+				text := fmt.Sprintf("Tapped %s", button.Label.Text)
+				if num%2 == 0 {
+					statusText.SetText(text)
+				} else {
+					// Prototype of an alert box
+					statusText.SetText("Showing Alert")
+					showSimpleAlert(text, "OK", func() {
+						statusText.SetText("Dismissed Alert")
 					})
 				}
-			} else {
-				button.Label.Text = fmt.Sprintf("Button %d", num)
-				button.Icon.Image = icon
-				button.Actions[ui.ControlTapped] = func(button *ui.Button) {
-					text := fmt.Sprintf("Tapped %s", button.Label.Text)
-					if num%2 == 0 {
-						statusText.SetText(text)
-					} else {
-						// Prototype of an alert box
-						statusText.SetText("Showing Alert")
-						showSimpleAlert(text, "OK", func() {
-							statusText.SetText("Dismissed Alert")
-						})
-					}
-				}
 			}
+
 			background.AddChild(button)
 		}
 	}
