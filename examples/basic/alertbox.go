@@ -20,7 +20,7 @@ var AlertBoxConfig struct {
 func init() {
 	AlertBoxConfig.Background = color.White
 	// Dim shadow (R/G/B are zero, which is black)
-	AlertBoxConfig.Border = color.RGBA{A: 0x22}
+	AlertBoxConfig.Border = color.RGBA{A: 0x30}
 	// Light, Cool Gray buttons on white background by default
 	AlertBoxConfig.ButtonBackground = color.RGBA{R: 0xE0, G: 0xE0, B: 0xF0, A: 0xFF}
 
@@ -77,8 +77,9 @@ func (alert *AlertBox) AddButton(label string, action func()) *ui.Button {
 }
 
 func (alert *AlertBox) NaturalSize() image.Point {
-	// len(buttons)-1 + 2 (top+bottom) + 2 (extra space for message)
-	padCount := len(alert.Buttons) + 3
+	const padding = 10
+	padCount := 4 // 2 for top/bottom, and double spacing around message
+
 	titleSize := alert.Title.NaturalSize()
 	if titleSize.X > 1 {
 		padCount++
@@ -91,7 +92,15 @@ func (alert *AlertBox) NaturalSize() image.Point {
 	} else {
 		messageSize.Y = 0
 	}
-	buttonHeight := 48 * len(alert.Buttons)
+	var buttonHeight = 0
+	if buttonCount := len(alert.Buttons); buttonCount > 2 {
+		// Vertical stack
+		buttonHeight = 48 * buttonCount
+		padCount += buttonCount - 1
+	} else if buttonCount > 0 {
+		// Buttons will be laid out left/right
+		buttonHeight = 60
+	}
 
 	size := image.Point{
 		X: 280,
@@ -124,9 +133,15 @@ func (alert *AlertBox) LayoutInParent() {
 	} else {
 		alert.Title.SetFrame(image.Rectangle{})
 	}
-	// Place the buttons in reverse order, slicing bottom-up
-	for idx := len(alert.Buttons); idx > 0; idx-- {
-		alert.Buttons[idx-1].SetFrame(layout.Slice(48, 10, ui.FromBottom).Rectangle)
+	if buttonCount := len(alert.Buttons); buttonCount > 2 {
+		// Place the buttons in reverse order, slicing bottom-up
+		for idx := buttonCount; idx > 0; idx-- {
+			alert.Buttons[idx-1].SetFrame(layout.Slice(48, 10, ui.FromBottom).Rectangle)
+		}
+	} else if buttonCount > 0 {
+		for idx, rect := range layout.Slice(60, 10, ui.FromBottom).Divide(buttonCount, 10, ui.FromRight) {
+			alert.Buttons[idx].SetFrame(rect.Rectangle)
+		}
 	}
 	// All remaining space is used for the message.
 	alert.Message.SetFrame(layout.Rectangle)
@@ -138,7 +153,7 @@ func (alert *AlertBox) OpaqueRect() image.Rectangle {
 
 func (alert *AlertBox) DrawIn(ctx ui.DrawingContext) {
 	// This could be more efficient, but it's flexible and the fill operations should be fast
-	const borderWidth = 1
+	const borderWidth = 2
 	ctx.Fill(alert.Rectangle, alert.Border, alert.Radius)
 	ctx.Fill(alert.Rectangle.Inset(borderWidth), alert.Background, alert.Radius-borderWidth)
 }

@@ -44,15 +44,23 @@ func styleDefaultAlertButton(button *ui.Button) {
 	button.StateDidChange()
 }
 
-func showSimpleAlert(message, buttontext string, done func()) {
+func showSimpleAlert(message string, buttonCount int, done func()) {
 	alert := &AlertBox{}
 	alert.Init()
 
 	alert.Title.Text = ""
 	alert.Message.Text = message
 	// Test out a 'default' button color
-	styleDefaultAlertButton(alert.AddButton(buttontext, done))
-	alert.AddButton("Cancel", done)
+	if buttonCount > 0 {
+		styleDefaultAlertButton(alert.AddButton("OK", done))
+		if buttonCount > 5 {
+			buttonCount = 5
+		}
+		extraButtons := []string{"Cancel", "Ignore", "Retry", "Fail"}
+		for _, title := range extraButtons[:buttonCount-1] {
+			alert.AddButton(title, done)
+		}
+	}
 
 	// Alert will size itself and lay out when added to parent
 	window.AddChild(alert)
@@ -87,15 +95,11 @@ func buildUI() {
 			button.Icon.Image = icon
 			button.Actions[ui.ControlTapped] = func(button *ui.Button) {
 				text := fmt.Sprintf("Tapped %s", button.Label.Text)
-				if num%2 == 0 {
-					statusText.SetText(text)
-				} else {
-					// Prototype of an alert box
-					statusText.SetText("Showing Alert")
-					showSimpleAlert(text, "OK", func() {
-						statusText.SetText("Dismissed Alert")
-					})
-				}
+				// Prototype of an alert box
+				statusText.SetText("Showing Alert")
+				showSimpleAlert(text, num, func() {
+					statusText.SetText("Dismissed Alert")
+				})
 			}
 
 			background.AddChild(button)
