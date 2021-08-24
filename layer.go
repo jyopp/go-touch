@@ -80,7 +80,9 @@ func (layer *BasicLayer) SetFrame(frame image.Rectangle) {
 		return
 	}
 	leafClass := layer.Layer()
-	leafClass.InvalidateRect(layer.Rectangle)
+	if !layer.Rectangle.Empty() {
+		leafClass.InvalidateRect(layer.Rectangle)
+	}
 	leafClass.InvalidateRect(frame)
 
 	layer.Rectangle = frame
