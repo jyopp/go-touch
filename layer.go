@@ -7,7 +7,7 @@ import (
 
 type Layer interface {
 	Children() []Layer
-	AddChild(Layer)
+	AddChild(...Layer)
 	InsertChild(Layer, int)
 	RemoveChild(Layer)
 
@@ -86,9 +86,12 @@ func (layer *BasicLayer) SetFrame(frame image.Rectangle) {
 	layer.Rectangle = frame
 }
 
-func (layer *BasicLayer) AddChild(child Layer) {
-	child.SetParent(layer.Layer())
-	layer.children = append(layer.children, child)
+func (layer *BasicLayer) AddChild(layers ...Layer) {
+	layer.children = append(layer.children, layers...)
+	self := layer.Layer()
+	for _, child := range layers {
+		child.SetParent(self)
+	}
 }
 
 func (layer *BasicLayer) InsertChild(child Layer, index int) {

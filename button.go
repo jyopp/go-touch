@@ -28,7 +28,7 @@ func (b *Button) Init(frame image.Rectangle, labelFont string, size float64) {
 	b.Label.Init(image.Rectangle{}, labelFont, size)
 	b.Label.Gravity = GravityCenter
 	b.Icon.Init(image.Rectangle{}, nil)
-	b.children = []Layer{&b.Icon, &b.Label}
+	b.AddChild(&b.Icon, &b.Label)
 	b.Self = b
 
 	// Default Colors
