@@ -150,7 +150,7 @@ func (layer *BasicLayer) SetParent(parent Layer) {
 
 func (layer *BasicLayer) RemoveFromParent() {
 	if layer.parent != nil {
-		layer.parent.RemoveChild(layer)
+		layer.parent.RemoveChild(layer.Layer())
 	}
 }
 
