@@ -133,12 +133,16 @@ func (b *Buffer) Clip(rect image.Rectangle) DrawingContext {
 
 func (b *Buffer) Fill(rect image.Rectangle, c color.Color, radius int) {
 	mask := CornerMask{rect, radius}
-	if b.parent == nil && rect.Eq(b.Rect) {
-		// Fastest path; Specifically for the root view of a buffered layer
-		b.Reset(c)
-		mask.EraseCorners(b)
-		return
-	}
+
+	// TODO: See if there is a safe way to re-enable this. For now, buffered
+	// layers shoud just call Reset and EraseCorners instead of Fill
+
+	// if b.parent == nil && rect.Eq(b.Rect) {
+	// 	// Fastest path; Specifically for the root view of a buffered layer
+	// 	b.Reset(c)
+	// 	mask.EraseCorners(b)
+	// 	return
+	// }
 
 	rgba := color.RGBAModel.Convert(c).(color.RGBA)
 	if rgba.A == 0 {

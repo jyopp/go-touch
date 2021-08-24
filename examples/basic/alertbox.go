@@ -132,9 +132,8 @@ func (alert *AlertBox) LayoutInParent() {
 	alert.Message.SetFrame(layout.Rectangle)
 }
 
-func (alert *AlertBox) IsOpaque() bool {
-	// Transparent border means alert is not drawn fully opaque in its frame
-	return false
+func (alert *AlertBox) OpaqueRect() image.Rectangle {
+	return alert.BasicLayer.OpaqueRect().Inset(1)
 }
 
 func (alert *AlertBox) DrawIn(ctx ui.DrawingContext) {

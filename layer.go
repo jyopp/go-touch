@@ -30,7 +30,7 @@ type Layer interface {
 	RemoveFromParent()
 
 	// TODO/WIP: Add IsOpaque()
-	IsOpaque() bool
+	OpaqueRect() image.Rectangle
 	// In a pre-rendering phase, collect the UNION of all child
 	// frames that need to be displayed with DrawingMode draw.Copy;
 	// In the rendering phase, draw dirty views in the global context,
@@ -136,12 +136,13 @@ func (layer *BasicLayer) HitTest(event TouchEvent) LayerTouchDelegate {
 	return nil
 }
 
-func (layer *BasicLayer) IsOpaque() bool {
+func (layer *BasicLayer) OpaqueRect() image.Rectangle {
 	if layer.Background != nil {
-		_, _, _, a := layer.Background.RGBA()
-		return a == 0xFFFF
+		if _, _, _, a := layer.Background.RGBA(); a == 0xFFFF {
+			return layer.Rectangle.Inset((layer.Radius + 1) / 2)
+		}
 	}
-	return false
+	return image.Rectangle{}
 }
 
 func (layer *BasicLayer) Parent() Layer {
@@ -178,8 +179,8 @@ func (layer *BasicLayer) Render(ctx DrawingContext) {
 	// Draw the smallest rect of this layer that is not occluded by opaque children
 	rect := ctx.Bounds()
 	for _, child := range layer.children {
-		if child.IsOpaque() {
-			rect = Winnow(rect, child.Frame())
+		if opaque := child.OpaqueRect(); !opaque.Empty() {
+			rect = Winnow(rect, opaque)
 		}
 	}
 	// Draw this layer IFF there are pixels to be drawn.
