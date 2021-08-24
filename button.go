@@ -44,29 +44,35 @@ func (b *Button) Init(frame image.Rectangle, labelFont string, size float64) {
 	b.StateDidChange()
 }
 
+func (b *Button) ApplyColors(c ButtonColors) {
+	if b.Background != c.Background {
+		b.Background = c.Background
+		b.Invalidate()
+	}
+
+	if b.Label.Color != c.Text {
+		b.Label.Color = c.Text
+		b.Label.Invalidate()
+	}
+
+	// Alpha-only images fall back to the text color when explicit Tint is not provided.
+	if _, isTemplate := b.Icon.Image.(*image.Alpha); isTemplate && c.ImageTint == nil {
+		c.ImageTint = c.Text
+	}
+	if b.Icon.Tint != c.ImageTint {
+		b.Icon.Tint = c.ImageTint
+		b.Icon.Invalidate()
+	}
+}
+
 func (b *Button) StateDidChange() {
-	var colors *ButtonColors
 	if b.IsDisabled() {
-		colors = &b.Colors.Disabled
+		b.ApplyColors(b.Colors.Disabled)
 	} else if b.IsHighlighted() {
-		colors = &b.Colors.Highlighted
+		b.ApplyColors(b.Colors.Highlighted)
 	} else {
-		colors = &b.Colors.Normal
+		b.ApplyColors(b.Colors.Normal)
 	}
-	b.Background = colors.Background
-	b.Label.Color = colors.Text
-	// Ensure that Alpha-only images are drawn with foreground color,
-	// but full-color images are drawn as-is.
-	if _, isTemplate := b.Icon.Image.(*image.Alpha); isTemplate {
-		if colors.ImageTint != nil {
-			b.Icon.Tint = colors.ImageTint
-		} else {
-			b.Icon.Tint = colors.Text
-		}
-	} else {
-		b.Icon.Tint = nil
-	}
-	b.Invalidate()
 }
 
 func (b *Button) SetParent(parent Layer) {
@@ -86,8 +92,10 @@ func (b *Button) Render(ctx DrawingContext) {
 	layout := LayoutRect{b.Rectangle.Inset(8)}
 	if img := b.Icon.Image; img != nil {
 		imgRect := layout.Slice(img.Bounds().Dy(), b.Spacing, FromTop).Rectangle
-		b.Icon.SetFrame(imgRect)
+		// Purposely avoid invalidation
+		b.Icon.Rectangle = imgRect
 	}
-	b.Label.SetFrame(layout.Rectangle)
+	b.Label.Rectangle = layout.Rectangle
+
 	b.BasicLayer.Render(ctx)
 }
