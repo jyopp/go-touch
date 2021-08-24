@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"image"
 	"image/color"
 	"image/jpeg"
 	"log"
@@ -18,13 +17,19 @@ import (
 )
 
 const (
-	DefaultFont     = "Raleway-Medium.ttf"
-	DefaultBoldFont = "Raleway-SemiBold.ttf"
+	DefaultFont       = "Raleway-Regular.ttf"
+	DefaultButtonFont = "Raleway-Medium.ttf"
+	DefaultBoldFont   = "Raleway-SemiBold.ttf"
 )
 
 func init() {
 	Resources.RegisterFont(DefaultFont)
+	Resources.RegisterFont(DefaultButtonFont)
 	Resources.RegisterFont(DefaultBoldFont)
+
+	AlertBoxConfig.TitleFont.Name = DefaultBoldFont
+	AlertBoxConfig.MessageFont.Name = DefaultFont
+	AlertBoxConfig.ButtonFont.Name = DefaultButtonFont
 }
 
 var (
@@ -35,40 +40,25 @@ var (
 	statusText = &ui.TextLayer{}
 )
 
+func styleDefaultAlertButton(button *ui.Button) {
+	button.Label.SetFont(DefaultBoldFont, AlertBoxConfig.ButtonFont.Size)
+	button.Label.Color = color.Black
+	button.Colors.Normal.Background = color.RGBA{R: 0xC0, G: 0xD0, B: 0xFF, A: 0xFF}
+	button.StateDidChange()
+}
+
 func showSimpleAlert(message, buttontext string, done func()) {
+	alert := &AlertBox{}
+	alert.Init()
 
-	layout := ui.Layout(ui.Layout(window.Rect).Aligned(image.Point{240, 180}, ui.GravityCenter))
-	wrapper := &ui.BasicLayer{}
-	wrapper.Background = color.RGBA{R: 0x00, G: 0x00, B: 0x00, A: 0x22}
-	wrapper.Radius = 8
-	wrapper.SetFrame(layout.Rectangle.Inset(-1))
+	alert.Title.Text = ""
+	alert.Message.Text = message
+	// Test out a 'default' button color
+	styleDefaultAlertButton(alert.AddButton(buttontext, done))
+	alert.AddButton("Cancel", done)
 
-	alert := &ui.BasicLayer{}
-	alert.Background = color.White
-	alert.Radius = 7
-	alert.SetFrame(layout.Rectangle)
-
-	layout = layout.InsetBy(10, 10)
-
-	button := &ui.Button{}
-	button.Init(layout.Slice(48, 10, ui.FromBottom).Rectangle, DefaultBoldFont, 14.0)
-	button.Colors.Normal.Background = color.RGBA{R: 0xE0, G: 0xE0, B: 0xFF, A: 0xFF}
-	button.Colors.Normal.Text = color.Gray{0x44}
-	button.Label.SetText(buttontext)
-	button.Actions[ui.ControlTapped] = func(button *ui.Button) {
-		wrapper.RemoveFromParent()
-		done()
-	}
-
-	textLayer := &ui.TextLayer{}
-	textLayer.Init(layout.Rectangle, DefaultFont, 15.0)
-	textLayer.Gravity = ui.GravityCenter
-	textLayer.SetText(message)
-
-	alert.AddChild(textLayer)
-	alert.AddChild(button)
-	wrapper.AddChild(alert)
-	window.AddChild(wrapper)
+	// Alert will size itself and lay out when added to parent
+	window.AddChild(alert)
 }
 
 func downloadBackground(button *ui.Button) {
@@ -114,7 +104,7 @@ func buildUI() {
 		for idx2, rect := range rect.Divide(3, 10, ui.FromLeft) {
 			num := 3*idx + idx2
 			button := &ui.Button{}
-			button.Init(rect.Rectangle, DefaultFont, 15.0)
+			button.Init(rect.Rectangle, DefaultButtonFont, 15.0)
 			if num == 0 {
 				button.Label.Text = "Wallpaper"
 				button.Icon.Image, _ = Resources.ReadPNGTemplate("hex-cluster.png")
