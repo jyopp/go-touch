@@ -8,7 +8,7 @@ import (
 	"image/draw"
 	"image/png"
 
-	"github.com/jyopp/fbui"
+	"github.com/jyopp/go-touch"
 )
 
 //go:embed images fonts
@@ -38,7 +38,7 @@ func (r *resourceReader) ReadPNGTemplate(name string) (*image.Alpha, error) {
 
 // RegisterFont registers a truetype font for on-demand loading
 func (r *resourceReader) RegisterFont(name string) {
-	fbui.RegisterTTF(name, func() []byte {
+	touch.RegisterTTF(name, func() []byte {
 		data, _ := _resourceFiles.ReadFile("fonts/" + name)
 		return data
 	})

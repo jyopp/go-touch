@@ -10,7 +10,7 @@ import (
 	"os/signal"
 	"runtime/pprof"
 
-	ui "github.com/jyopp/fbui"
+	"github.com/jyopp/go-touch"
 )
 
 const (
@@ -30,14 +30,14 @@ func init() {
 }
 
 var (
-	window     = &ui.Window{}
-	events     = &ui.EventStream{}
+	window     = &touch.Window{}
+	events     = &touch.EventStream{}
 	background = &Background{}
-	statusArea = &ui.BasicLayer{}
-	statusText = &ui.TextLayer{}
+	statusArea = &touch.BasicLayer{}
+	statusText = &touch.TextLayer{}
 )
 
-func styleDefaultAlertButton(button *ui.Button) {
+func styleDefaultAlertButton(button *touch.Button) {
 	button.Label.SetFont(DefaultBoldFont, AlertBoxConfig.ButtonFont.Size)
 	button.Label.Color = color.Black
 	button.Colors.Normal.Background = color.RGBA{R: 0xC0, G: 0xD0, B: 0xFF, A: 0xFF}
@@ -69,31 +69,31 @@ func showSimpleAlert(message string, buttonCount int, done func()) {
 func buildUI() {
 	background.Init(window.Bounds(), 0xEE)
 
-	buttonArea := ui.Layout(background.Rectangle).InsetBy(10, 10)
+	buttonArea := touch.Layout(background.Rectangle).InsetBy(10, 10)
 	transparentWhite := color.RGBA{R: 0xBB, G: 0xBB, B: 0xBB, A: 0xBB}
 
-	statusArea.SetFrame(buttonArea.Slice(40, 10, ui.FromBottom).Rectangle)
+	statusArea.SetFrame(buttonArea.Slice(40, 10, touch.FromBottom).Rectangle)
 	statusArea.Background = transparentWhite
 	statusArea.Radius = 5
 	background.AddChild(statusArea)
 
-	statusTextRect := ui.Layout(statusArea.Rectangle).InsetBy(10, 5).Rectangle
+	statusTextRect := touch.Layout(statusArea.Rectangle).InsetBy(10, 5).Rectangle
 	statusText.Init(statusTextRect, DefaultBoldFont, 11.0)
 	statusText.Text = "Status Text Test"
 	statusText.Color = color.Gray{0x33}
 	statusArea.AddChild(statusText)
 
 	icon, _ := Resources.ReadPNGTemplate("chevron-down.png")
-	for idx, rect := range buttonArea.Divide(2, 10, ui.FromTop) {
+	for idx, rect := range buttonArea.Divide(2, 10, touch.FromTop) {
 		rowStart := 3 * idx
-		for idx, rect := range rect.Divide(3, 10, ui.FromLeft) {
+		for idx, rect := range rect.Divide(3, 10, touch.FromLeft) {
 			num := rowStart + idx
 
-			button := &ui.Button{}
+			button := &touch.Button{}
 			button.Init(rect.Rectangle, DefaultButtonFont, 15.0)
 			button.Label.Text = fmt.Sprintf("Button %d", num)
 			button.Icon.Image = icon
-			button.Actions[ui.ControlTapped] = func(button *ui.Button) {
+			button.Actions[touch.ControlTapped] = func(button *touch.Button) {
 				text := fmt.Sprintf("Tapped %s", button.Label.Text)
 				// Prototype of an alert box
 				statusText.SetText("Showing Alert")
@@ -112,7 +112,7 @@ func buildUI() {
 var (
 	// Calibration describes the behavior of the touchscreen in its natural orientation.
 	// Display will swap Min & Max values as needed to match the display's rotation.
-	touchCalibration = ui.TouchscreenCalibration{
+	touchCalibration = touch.TouchscreenCalibration{
 		MinX: 235, MaxX: 3750,
 		MinY: 3800, MaxY: 80, // Y-Axis events are bottom-to-top in the natural orientation
 		Weak: 180, Strong: 80,
@@ -139,7 +139,7 @@ func main() {
 	if framebuffer, err := os.OpenFile("/dev/fb1", os.O_RDWR, 0); err == nil {
 		// Width and height are screen's 'natural' dimensions.
 		// They will be swapped if needed based on the rotationAngle provided.
-		display := &ui.Display{}
+		display := &touch.Display{}
 		display.Init(320, 480, *rotationAngle, framebuffer, touchCalibration)
 		defer framebuffer.Close()
 		defer display.Clear()
@@ -162,7 +162,7 @@ func main() {
 	signalCtx, signalCleanup := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer signalCleanup()
 
-	if err := ui.RunLoop(signalCtx, window, events); err != nil {
+	if err := touch.RunLoop(signalCtx, window, events); err != nil {
 		log.Fatal(err)
 	}
 }

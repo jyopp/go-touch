@@ -5,11 +5,11 @@ import (
 	"image/color"
 	"image/draw"
 
-	ui "github.com/jyopp/fbui"
+	"github.com/jyopp/go-touch"
 )
 
 type Background struct {
-	ui.BasicLayer
+	touch.BasicLayer
 	// Value from 0-255 controlling the brightness of the gradient
 	Brightness int
 }
@@ -20,7 +20,7 @@ func (b *Background) Init(frame image.Rectangle, brightness int) {
 	b.Self = b
 }
 
-func (b *Background) DrawIn(ctx ui.DrawingContext) {
+func (b *Background) DrawIn(ctx touch.DrawingContext) {
 	bounds := ctx.Bounds()
 	bright := b.Brightness
 

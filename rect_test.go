@@ -1,22 +1,22 @@
-package fbui_test
+package touch_test
 
 import (
 	"image"
 	"testing"
 
-	"github.com/jyopp/fbui"
+	touch "github.com/jyopp/go-touch"
 )
 
 func TestRectOperations(t *testing.T) {
 	r1, r2 := image.Rect(0, 0, 10, 10), image.Rect(5, 0, 15, 10)
 	t.Run("Winnow Subtracts from Rects", func(t *testing.T) {
-		winnowed := fbui.Winnow(r1, r2)
+		winnowed := touch.Winnow(r1, r2)
 		if expect := image.Rect(0, 0, 5, 10); winnowed != expect {
 			t.Logf("Winnow did not remove overlap: %v != %v", winnowed, expect)
 		}
 	})
 	t.Run("Disjoin Separates Rects", func(t *testing.T) {
-		fbui.Disjoin(&r1, &r2)
+		touch.Disjoin(&r1, &r2)
 		if union := r1.Union(r2); r1.Dx()+r2.Dx() != union.Dx() {
 			t.Logf("Widths do not add to union width: (%d + %d) != %d", r1.Dx(), r2.Dx(), union.Dx())
 			t.Fail()
@@ -27,7 +27,7 @@ func TestRectOperations(t *testing.T) {
 		}
 	})
 	t.Run("Merge Joins Adjacent Rects", func(t *testing.T) {
-		merged := fbui.Merge(r1, r2)
+		merged := touch.Merge(r1, r2)
 		if !r1.In(merged) || !r2.In(merged) {
 			t.Logf("Merged rect does not cover inputs: %v != %v + %v", merged, r1, r2)
 			t.Fail()
@@ -87,7 +87,7 @@ func BenchmarkRectOperations(b *testing.B) {
 			for testIdx := b.N; pb.Next(); testIdx++ {
 				for i := 0; i < len(rects); i++ {
 					for j := 0; j < len(rects); j++ {
-						fbui.Winnow(rects[i], rects[j]).Empty()
+						touch.Winnow(rects[i], rects[j]).Empty()
 					}
 				}
 			}

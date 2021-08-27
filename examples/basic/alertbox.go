@@ -4,7 +4,7 @@ import (
 	"image"
 	"image/color"
 
-	ui "github.com/jyopp/fbui"
+	"github.com/jyopp/go-touch"
 )
 
 var AlertBoxConfig struct {
@@ -35,9 +35,9 @@ func init() {
 }
 
 type AlertBox struct {
-	ui.BasicLayer
-	Title, Message ui.TextLayer
-	Buttons        []*ui.Button
+	touch.BasicLayer
+	Title, Message touch.TextLayer
+	Buttons        []*touch.Button
 	Border         color.Color
 }
 
@@ -47,25 +47,25 @@ func (alert *AlertBox) Init() {
 	alert.Border = AlertBoxConfig.Border
 
 	alert.Title.Init(image.Rectangle{}, AlertBoxConfig.TitleFont.Name, AlertBoxConfig.TitleFont.Size)
-	alert.Title.Gravity = ui.GravityCenter
+	alert.Title.Gravity = touch.GravityCenter
 
 	alert.Message.Init(image.Rectangle{}, AlertBoxConfig.MessageFont.Name, AlertBoxConfig.MessageFont.Size)
-	alert.Message.Gravity = ui.GravityCenter
+	alert.Message.Gravity = touch.GravityCenter
 
 	alert.AddChild(&alert.Title, &alert.Message)
 	// Don't forget this, else method overrides will fail
 	alert.Self = alert
 }
 
-func (alert *AlertBox) AddButton(label string, action func()) *ui.Button {
-	button := &ui.Button{}
+func (alert *AlertBox) AddButton(label string, action func()) *touch.Button {
+	button := &touch.Button{}
 
 	button.Init(image.Rectangle{}, AlertBoxConfig.ButtonFont.Name, AlertBoxConfig.ButtonFont.Size)
 	button.Label.SetText(label)
-	button.Label.Gravity = ui.GravityCenter
+	button.Label.Gravity = touch.GravityCenter
 	button.Colors.Normal.Text = AlertBoxConfig.ButtonFont.Color
 	button.Colors.Normal.Background = AlertBoxConfig.ButtonBackground
-	button.Actions[ui.ControlTapped] = func(button *ui.Button) {
+	button.Actions[touch.ControlTapped] = func(button *touch.Button) {
 		alert.RemoveFromParent()
 		action()
 	}
@@ -113,7 +113,7 @@ func (alert *AlertBox) NaturalSize() image.Point {
 }
 
 // Alert automatically sizes and centers itself when added to a parent view.
-func (alert *AlertBox) SetParent(parent ui.Layer) {
+func (alert *AlertBox) SetParent(parent touch.Layer) {
 	alert.BasicLayer.SetParent(parent)
 	alert.LayoutInParent()
 }
@@ -122,24 +122,24 @@ func (alert *AlertBox) LayoutInParent() {
 	if alert.Parent() == nil {
 		return
 	}
-	parentArea := ui.Layout(alert.Parent().Frame().Inset(10))
-	layout := ui.Layout(parentArea.Aligned(alert.NaturalSize(), ui.GravityCenter))
+	parentArea := touch.Layout(alert.Parent().Frame().Inset(10))
+	layout := touch.Layout(parentArea.Aligned(alert.NaturalSize(), touch.GravityCenter))
 	alert.SetFrame(layout.Rectangle)
 	layout = layout.InsetBy(10, 10)
 
 	// If the title is
 	if titleSize := alert.Title.NaturalSize(); titleSize.X > 1 {
-		alert.Title.SetFrame(layout.Slice(titleSize.Y, 10, ui.FromTop).Rectangle)
+		alert.Title.SetFrame(layout.Slice(titleSize.Y, 10, touch.FromTop).Rectangle)
 	} else {
 		alert.Title.SetFrame(image.Rectangle{})
 	}
 	if buttonCount := len(alert.Buttons); buttonCount > 2 {
 		// Place the buttons in reverse order, slicing bottom-up
 		for idx := buttonCount; idx > 0; idx-- {
-			alert.Buttons[idx-1].SetFrame(layout.Slice(48, 10, ui.FromBottom).Rectangle)
+			alert.Buttons[idx-1].SetFrame(layout.Slice(48, 10, touch.FromBottom).Rectangle)
 		}
 	} else if buttonCount > 0 {
-		for idx, rect := range layout.Slice(60, 10, ui.FromBottom).Divide(buttonCount, 10, ui.FromRight) {
+		for idx, rect := range layout.Slice(60, 10, touch.FromBottom).Divide(buttonCount, 10, touch.FromRight) {
 			alert.Buttons[idx].SetFrame(rect.Rectangle)
 		}
 	}
@@ -151,7 +151,7 @@ func (alert *AlertBox) OpaqueRect() image.Rectangle {
 	return alert.BasicLayer.OpaqueRect().Inset(1)
 }
 
-func (alert *AlertBox) DrawIn(ctx ui.DrawingContext) {
+func (alert *AlertBox) DrawIn(ctx touch.DrawingContext) {
 	// This could be more efficient, but it's flexible and the fill operations should be fast
 	const borderWidth = 2
 	ctx.Fill(alert.Rectangle, alert.Border, alert.Radius)
