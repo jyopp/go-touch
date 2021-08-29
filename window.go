@@ -39,7 +39,7 @@ func (w *Window) InvalidateRect(rect image.Rectangle) {
 // update traverses the layer hierarchy, displaying any layers
 // that need to be displayed. If any layers are displayed, a
 // superset of all drawn rects is flushed to the display.
-func (w *Window) update() {
+func (w *Window) update(flush func(*image.RGBA)) {
 	start := time.Now()
 	w.BufferedLayer.RenderBuffer()
 	w.checkRoundCorners()
@@ -47,7 +47,7 @@ func (w *Window) update() {
 
 	rects := w.dirty.Dequeue()
 	for _, rect := range rects {
-		w.display.render(w.Buffer.SubImage(rect).(*image.RGBA))
+		flush(w.Buffer.SubImage(rect).(*image.RGBA))
 	}
 
 	if time.Since(start).Milliseconds() > 0 {
@@ -68,7 +68,7 @@ func (w *Window) checkRoundCorners() {
 	for _, rect := range w.dirty.Rects {
 		if !(rect.In(v) || rect.In(h)) {
 			// If any rect overlaps the bounds around a corner, mask them out and return
-			mask.EraseCorners(w.Buffer.RGBA)
+			mask.EraseCorners(w.Buffer.RGBA, color.Black)
 			break
 		}
 	}
@@ -77,8 +77,8 @@ func (w *Window) checkRoundCorners() {
 // Redraw erases the contents of the DrawBuffer and unconditonally
 // redraws all layers.
 // The entire DrawBuffer is flushed to the display before returning.
-func (w *Window) Redraw() {
+func (w *Window) Redraw(flush func(*image.RGBA)) {
 	w.Buffer.Reset(color.RGBA{})
 	w.Invalidate()
-	w.update()
+	w.update(flush)
 }

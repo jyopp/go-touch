@@ -23,7 +23,7 @@ func (cm CornerMask) AlphaImage(opacity byte) *image.Alpha {
 
 	alpha := image.NewAlpha(cm.Rectangle)
 	bytesFill(alpha.Pix, []byte{opacity})
-	cm.EraseCorners(alpha)
+	cm.EraseCorners(alpha, color.Alpha{0x00})
 	return alpha
 }
 
@@ -39,8 +39,8 @@ func (cm CornerMask) OpaqueRects() (v, h image.Rectangle) {
 	return
 }
 
-func (cm CornerMask) EraseCorners(img draw.Image) {
-	c := img.ColorModel().Convert(color.Transparent)
+func (cm CornerMask) EraseCorners(img draw.Image, c color.Color) {
+	c = img.ColorModel().Convert(c)
 	r := cm.Radius
 	if r == 0 {
 		return

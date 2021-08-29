@@ -4,10 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"runtime/pprof"
 
 	"github.com/jyopp/go-touch"
@@ -69,7 +71,7 @@ func showSimpleAlert(message string, buttonCount int, done func()) {
 func buildUI() {
 	background.Init(window.Bounds(), 0xEE)
 
-	buttonArea := touch.Layout(background.Rectangle).InsetBy(10, 10)
+	buttonArea := touch.Layout(background.Rectangle).InsetBy(11, 11)
 	transparentWhite := color.RGBA{R: 0xBB, G: 0xBB, B: 0xBB, A: 0xBB}
 
 	statusArea.SetFrame(buttonArea.Slice(40, 10, touch.FromBottom).Rectangle)
@@ -136,25 +138,26 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	if framebuffer, err := os.OpenFile("/dev/fb1", os.O_RDWR, 0); err == nil {
-		// Width and height are screen's 'natural' dimensions.
-		// They will be swapped if needed based on the rotationAngle provided.
-		display := &touch.Display{}
-		display.Init(320, 480, *rotationAngle, framebuffer, touchCalibration)
-		defer framebuffer.Close()
-		defer display.Clear()
+	switch runtime.GOOS {
+	case "linux":
+		if framebuffer, err := os.OpenFile("/dev/fb1", os.O_RDWR, 0); err == nil {
+			// Width and height are screen's 'natural' dimensions.
+			// They will be swapped if needed based on the rotationAngle provided.
+			display := &touch.Display{}
+			display.Init(320, 480, *rotationAngle, framebuffer, touchCalibration)
+			defer framebuffer.Close()
+			defer display.Clear()
 
+			window.Init(display)
+		} else {
+			panic(err)
+		}
+	case "darwin":
+		// TODO: This is super awful, but for now we can use a mostly-uninitialized display
+		display := &touch.Display{
+			Size: image.Point{X: 480, Y: 320},
+		}
 		window.Init(display)
-	} else {
-		panic(err)
-	}
-
-	if eventFile, err := os.Open("/dev/input/event0"); err == nil {
-		events.Init(eventFile)
-		defer eventFile.Close()
-		// events.dump = true
-	} else {
-		panic(err)
 	}
 
 	buildUI()
@@ -162,7 +165,7 @@ func main() {
 	signalCtx, signalCleanup := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer signalCleanup()
 
-	if err := touch.RunLoop(signalCtx, window, events); err != nil {
+	if err := touch.RunLoop(signalCtx, window); err != nil {
 		log.Fatal(err)
 	}
 }

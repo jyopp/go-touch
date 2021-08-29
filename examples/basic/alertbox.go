@@ -109,6 +109,9 @@ func (alert *AlertBox) NaturalSize() image.Point {
 	if size.Y < 180 {
 		size.Y = 180
 	}
+	if size.X < messageSize.X+20 {
+		size.X = messageSize.X + 20
+	}
 	return size
 }
 
