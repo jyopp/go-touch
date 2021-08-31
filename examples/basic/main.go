@@ -149,6 +149,7 @@ func main() {
 			defer display.Clear()
 
 			window.Init(display)
+			window.Radius = 9
 		} else {
 			panic(err)
 		}

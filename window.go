@@ -62,7 +62,7 @@ func (w *Window) update(flush func(*image.RGBA)) {
 
 func (w *Window) checkRoundCorners() {
 	// Knock off the screen corners if any of them may have been drawn over
-	mask := CornerMask{w.Rectangle, 9}
+	mask := CornerMask{w.Rectangle, w.Radius}
 	// If any of the corners were drawn, mask them out before flushing
 	v, h := mask.OpaqueRects()
 	for _, rect := range w.dirty.Rects {
