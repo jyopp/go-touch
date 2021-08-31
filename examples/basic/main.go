@@ -153,6 +153,9 @@ func main() {
 			panic(err)
 		}
 	case "darwin":
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
 		// TODO: This is super awful, but for now we can use a mostly-uninitialized display
 		display := &touch.Display{
 			Size: image.Point{X: 480, Y: 320},
