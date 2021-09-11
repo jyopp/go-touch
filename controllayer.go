@@ -1,5 +1,9 @@
 package touch
 
+import (
+	"time"
+)
+
 type ControlStateMask int
 
 const (
@@ -12,12 +16,15 @@ type ControlAction int
 
 const (
 	ControlTapped ControlAction = iota
+	ControlLongPress
 	ControlActionsCount
 )
 
 type ControlLayer struct {
 	BasicLayer
-	State ControlStateMask
+	State          ControlStateMask
+	touchOrigin    TouchEvent
+	longpressTimer *time.Timer
 }
 
 type ControlDelegate interface {
@@ -70,15 +77,44 @@ func (c *ControlLayer) SetDisabled(disabled bool) {
 
 func (c *ControlLayer) StartTouch(event TouchEvent) {
 	c.SetHighlighted(event.In(c.Rectangle))
+	// Start long-press handling
+	c.touchOrigin = event
+	c.longpressTimer = time.AfterFunc(400*time.Millisecond, c.dispatchLongPress)
 }
 
 func (c *ControlLayer) UpdateTouch(event TouchEvent) {
 	c.SetHighlighted(event.In(c.Rectangle))
+
+	if !event.InRadius(c.touchOrigin, 10) {
+		c.cancelLongPress()
+	}
 }
 
 func (c *ControlLayer) EndTouch(event TouchEvent) {
-	if event.In(c.Rectangle) {
+	if c.cancelLongPress() && event.In(c.Rectangle) {
 		c.TriggerAction(ControlTapped)
 	}
 	c.SetHighlighted(false)
+}
+
+func (c *ControlLayer) CancelTouch() {
+	c.cancelLongPress()
+	c.SetHighlighted(false)
+}
+
+/* Long Press Handling (Private) */
+
+func (c *ControlLayer) dispatchLongPress() {
+	AddToRunLoop(func() {
+		c.touchOrigin.Cancel()
+		c.TriggerAction(ControlLongPress)
+	})
+}
+
+func (c *ControlLayer) cancelLongPress() (canceled bool) {
+	if t := c.longpressTimer; t != nil {
+		canceled = t.Stop()
+		c.longpressTimer = nil
+	}
+	return
 }

@@ -45,6 +45,7 @@ type LayerTouchDelegate interface {
 	StartTouch(TouchEvent)
 	UpdateTouch(TouchEvent)
 	EndTouch(TouchEvent)
+	CancelTouch()
 }
 
 type touchBlocker struct{}
@@ -52,6 +53,7 @@ type touchBlocker struct{}
 func (tb touchBlocker) StartTouch(TouchEvent)  {}
 func (tb touchBlocker) UpdateTouch(TouchEvent) {}
 func (tb touchBlocker) EndTouch(TouchEvent)    {}
+func (tb touchBlocker) CancelTouch()           {}
 
 type BasicLayer struct {
 	image.Rectangle

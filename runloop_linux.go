@@ -23,12 +23,27 @@ func RunLoop(ctx context.Context, w *Window) error {
 	go e.inputReadLoop()
 
 	var eventTarget LayerTouchDelegate
+	var touchCanceled bool
+	cancelTouch := func() {
+		touchCanceled = true
+		if eventTarget != nil {
+			eventTarget.EndTouch(event)
+			eventTarget = nil
+		}
+	}
+
 outer:
 	for {
 		select {
 		case event := <-e.Events:
 			w.Calibrate(&event)
-			if event.Pressed {
+			event.Cancel = cancel
+			if touchCanceled {
+				// Ignore events until touch up
+				if !event.Pressed {
+					touchCanceled = false
+				}
+			} else if event.Pressed {
 				if eventTarget != nil {
 					eventTarget.UpdateTouch(event)
 				} else {
@@ -43,6 +58,8 @@ outer:
 					eventTarget = nil
 				}
 			}
+		case task := <-runloop_tasks:
+			task()
 		case <-w.redrawCh:
 			w.update(w.display.render)
 		case <-ctx.Done():

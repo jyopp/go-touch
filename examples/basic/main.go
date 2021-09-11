@@ -97,6 +97,10 @@ func buildUI() {
 			button.Icon.Image = icon
 			button.Actions[touch.ControlTapped] = func(button *touch.Button) {
 				text := fmt.Sprintf("Tapped %s", button.Label.Text)
+				statusText.SetText(text)
+			}
+			button.Actions[touch.ControlLongPress] = func(button *touch.Button) {
+				text := fmt.Sprintf("Long Pressed %s", button.Label.Text)
 				// Prototype of an alert box
 				statusText.SetText("Showing Alert")
 				showSimpleAlert(text, num, func() {

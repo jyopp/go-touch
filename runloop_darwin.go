@@ -35,11 +35,26 @@ func mac_runloop(ctx context.Context, w *Window) {
 	cW, cH := C.int(w.display.Size.X), C.int(w.display.Size.Y)
 
 	var eventTarget LayerTouchDelegate
+	var touchCanceled bool
+	cancelTouch := func() {
+		touchCanceled = true
+		if eventTarget != nil {
+			eventTarget.CancelTouch()
+			eventTarget = nil
+		}
+	}
+
 outer:
 	for {
 		select {
 		case event := <-events:
-			if event.Pressed {
+			event.Cancel = cancelTouch
+			if touchCanceled {
+				// Ignore events until mouseup
+				if !event.Pressed {
+					touchCanceled = false
+				}
+			} else if event.Pressed {
 				if eventTarget != nil {
 					eventTarget.UpdateTouch(event)
 				} else {
@@ -54,6 +69,8 @@ outer:
 					eventTarget = nil
 				}
 			}
+		case task := <-runloop_tasks:
+			task()
 		case <-w.redrawCh:
 			dirty := false
 			w.update(func(_ *image.RGBA) {
