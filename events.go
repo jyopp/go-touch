@@ -48,6 +48,8 @@ func (es *EventStream) Init(deviceFile *os.File) {
 }
 
 func (es *EventStream) inputReadLoop() {
+	defer es.DeviceFile.Close()
+
 	var currentEvent TouchEvent
 	var e inputEvent
 

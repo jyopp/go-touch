@@ -18,6 +18,11 @@ func (c *TouchscreenCalibration) prepare(w, h int) {
 }
 
 func (c *TouchscreenCalibration) Adjust(ev *TouchEvent) {
+	// Nil calibrations are callable with no effect.
+	if c == nil {
+		return
+	}
+
 	if c.swapAxes {
 		ev.X, ev.Y = ev.Y, ev.X
 	}

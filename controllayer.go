@@ -105,10 +105,10 @@ func (c *ControlLayer) CancelTouch() {
 /* Long Press Handling (Private) */
 
 func (c *ControlLayer) dispatchLongPress() {
-	AddToRunLoop(func() {
+	MainRunLoop.Tasks <- func() {
 		c.touchOrigin.Cancel()
 		c.TriggerAction(ControlLongPress)
-	})
+	}
 }
 
 func (c *ControlLayer) cancelLongPress() (canceled bool) {

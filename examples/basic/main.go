@@ -4,12 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"image"
 	"image/color"
-	"log"
 	"os"
 	"os/signal"
-	"runtime"
 	"runtime/pprof"
 
 	"github.com/jyopp/go-touch"
@@ -142,38 +139,18 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	switch runtime.GOOS {
-	case "linux":
-		if framebuffer, err := os.OpenFile("/dev/fb1", os.O_RDWR, 0); err == nil {
-			// Width and height are screen's 'natural' dimensions.
-			// They will be swapped if needed based on the rotationAngle provided.
-			display := &touch.Display{}
-			display.Init(320, 480, *rotationAngle, framebuffer, touchCalibration)
-			defer framebuffer.Close()
-			defer display.Clear()
+	display := &touch.Display{}
+	display.Init(320, 480, *rotationAngle, "/dev/fb1", &touchCalibration)
+	defer display.Close()
 
-			window.Init(display)
-			window.Radius = 9
-		} else {
-			panic(err)
-		}
-	case "darwin":
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		// TODO: This is super awful, but for now we can use a mostly-uninitialized display
-		display := &touch.Display{
-			Size: image.Point{X: 480, Y: 320},
-		}
-		window.Init(display)
-	}
-
-	buildUI()
+	window.Init(display)
+	window.Radius = 9
 
 	signalCtx, signalCleanup := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer signalCleanup()
 
-	if err := touch.RunLoop(signalCtx, window); err != nil {
-		log.Fatal(err)
-	}
+	// Initialize runloop before UI so it's OK to send to its channels.
+	touch.MainRunLoop.Init(window)
+	buildUI()
+	touch.MainRunLoop.Run(signalCtx)
 }
