@@ -30,6 +30,7 @@ type ControlLayer struct {
 type ControlDelegate interface {
 	StateDidChange()
 	HandleAction(ControlAction)
+	ShouldHandleAction(ControlAction) bool
 }
 
 func (c *ControlLayer) SetState(state ControlStateMask) {
@@ -42,7 +43,7 @@ func (c *ControlLayer) SetState(state ControlStateMask) {
 }
 
 func (c *ControlLayer) TriggerAction(action ControlAction) {
-	if del, ok := c.Self.(ControlDelegate); ok {
+	if del, ok := c.Self.(ControlDelegate); ok && del.ShouldHandleAction(action) {
 		del.HandleAction(action)
 	}
 }
@@ -79,13 +80,15 @@ func (c *ControlLayer) StartTouch(event TouchEvent) {
 	c.SetHighlighted(event.In(c.Rectangle))
 	// Start long-press handling
 	c.touchOrigin = event
-	c.longpressTimer = time.AfterFunc(400*time.Millisecond, c.dispatchLongPress)
+	if del, ok := c.Self.(ControlDelegate); ok && del.ShouldHandleAction(ControlLongPress) {
+		c.longpressTimer = time.AfterFunc(400*time.Millisecond, c.dispatchLongPress)
+	}
 }
 
 func (c *ControlLayer) UpdateTouch(event TouchEvent) {
 	c.SetHighlighted(event.In(c.Rectangle))
 
-	if !event.InRadius(c.touchOrigin, 10) {
+	if !event.InRadius(c.touchOrigin, 25) {
 		c.cancelLongPress()
 	}
 }
@@ -115,6 +118,8 @@ func (c *ControlLayer) cancelLongPress() (canceled bool) {
 	if t := c.longpressTimer; t != nil {
 		canceled = t.Stop()
 		c.longpressTimer = nil
+	} else {
+		canceled = true
 	}
 	return
 }

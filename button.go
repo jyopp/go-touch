@@ -87,6 +87,10 @@ func (b *Button) HandleAction(action ControlAction) {
 	}
 }
 
+func (b *Button) ShouldHandleAction(action ControlAction) bool {
+	return !b.IsDisabled() && b.Actions[action] != nil
+}
+
 func (b *Button) Render(ctx DrawingContext) {
 	// "Layout Sublayers"
 	layout := LayoutRect{b.Rectangle.Inset(8)}
