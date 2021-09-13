@@ -7,15 +7,15 @@ import (
 
 func (runloop *RunLoop) platformInit() {
 	// For Linux, open the eventfile and start reading it.
-	var e EventStream
-	if eventFile, err := os.Open("/dev/input/event0"); err == nil {
-		e.Init(eventFile)
-	} else {
+	eventFile, err := os.Open("/dev/input/event0")
+	if err != nil {
 		panic(err)
 	}
 
+	var e EventStream
+	e.Init()
 	runloop.events = e.Events
-	go e.inputReadLoop()
+	go e.inputReadLoop(eventFile)
 }
 
 func (runloop *RunLoop) updateDisplay() {

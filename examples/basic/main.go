@@ -30,7 +30,6 @@ func init() {
 
 var (
 	window     = &touch.Window{}
-	events     = &touch.EventStream{}
 	background = &Background{}
 	statusArea = &touch.BasicLayer{}
 	statusText = &touch.TextLayer{}
